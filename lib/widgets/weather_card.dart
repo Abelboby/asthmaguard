@@ -209,14 +209,14 @@ class WeatherCard extends StatelessWidget {
       {bool? isSafe, String? safeRange}) {
     // If no prescription is available, isSafe will be null
     final bool hasSafetyInfo = isSafe != null && safeRange != null;
-    final Color safetyColor =
-        (isSafe ?? true) ? AppColors.successColor : AppColors.errorColor;
+    // final Color safetyColor =
+    //     (isSafe ?? true) ? AppColors.successColor : AppColors.errorColor;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(15),
-        border: hasSafetyInfo && !isSafe!
+        border: hasSafetyInfo && !isSafe
             ? Border.all(
                 color: AppColors.errorColor.withOpacity(0.5), width: 1.5)
             : null,
@@ -228,7 +228,7 @@ class WeatherCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: hasSafetyInfo && !isSafe!
+              color: hasSafetyInfo && !isSafe
                   ? AppColors.errorColor.withOpacity(0.1)
                   : iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
