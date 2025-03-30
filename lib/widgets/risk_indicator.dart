@@ -46,7 +46,16 @@ class RiskIndicator extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (showScore && actScore != null)
+                if (showScore && actScore != null) ...[
+                  Text(
+                    'ACT Score',
+                    style: TextStyle(
+                      color: _getRiskColor(),
+                      fontSize: size * 0.1,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     actScore!.toStringAsFixed(1),
                     style: TextStyle(
@@ -55,6 +64,8 @@ class RiskIndicator extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 2),
+                ],
                 Text(
                   riskStatus == AppConstants.highRisk
                       ? 'High Risk'

@@ -399,13 +399,27 @@ class _HomeScreenState extends State<HomeScreen>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Current Risk Level',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryTextColor,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Current Risk Level',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryTextColor,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.info_outline,
+                                      size: 18,
+                                      color: AppColors.secondaryTextColor,
+                                    ),
+                                    padding: const EdgeInsets.all(4),
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => _showActScoreInfo(context),
+                                  ),
+                                ],
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -436,6 +450,19 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                           const SizedBox(height: 15),
+                          // Add explanatory text about ACT score
+                          Center(
+                            child: Text(
+                              'Based on environmental factors that affect your breathing',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                                color: AppColors.secondaryTextColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
                           if (weatherData.riskStatus == AppConstants.highRisk)
                             Container(
                               width: double.infinity,
@@ -658,6 +685,202 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showActScoreInfo(BuildContext context) {
+    // Implement the logic to show an info dialog explaining the ACT score's significance
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.analytics_outlined,
+              color: AppColors.primaryColor,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text('About ACT Score'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'What is ACT Score?',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'The Asthma Control Test (ACT) Score is a standardized measurement used to assess how well a patient\'s asthma is controlled. In AsthmaGuard, we calculate a modified ACT score based on environmental factors that are known to influence asthma symptoms.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.secondaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'How is it calculated?',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Our ACT score considers multiple environmental factors including:',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.secondaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildFactorItem('Temperature',
+                  'Extreme hot or cold temperatures can trigger asthma'),
+              _buildFactorItem(
+                  'Humidity', 'Very high or low humidity affects breathing'),
+              _buildFactorItem('Air Pressure',
+                  'Rapid changes in barometric pressure can trigger symptoms'),
+              _buildFactorItem('Wind Speed',
+                  'High winds can increase pollutants and allergens in the air'),
+              const SizedBox(height: 16),
+              Text(
+                'Score Interpretation',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildScoreRange(
+                '25-30',
+                'High Risk',
+                'Urgent attention needed. Consult your doctor immediately.',
+                AppColors.highRiskColor,
+              ),
+              const SizedBox(height: 8),
+              _buildScoreRange(
+                '20-24',
+                'Medium Risk',
+                'Increased chance of asthma symptoms. Monitor your condition closely.',
+                AppColors.mediumRiskColor,
+              ),
+              const SizedBox(height: 8),
+              _buildScoreRange(
+                'Below 20',
+                'Low Risk',
+                'Your asthma is relatively well-controlled under current conditions.',
+                AppColors.lowRiskColor,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFactorItem(String factor, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.circle,
+            size: 8,
+            color: AppColors.primaryColor,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  factor,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.primaryTextColor,
+                  ),
+                ),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreRange(
+      String range, String risk, String description, Color color) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: color.withOpacity(0.5),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            range,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: color,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                risk,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: color,
+                ),
+              ),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.secondaryTextColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
