@@ -69,21 +69,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Profile',
           style: TextStyle(
-            color: AppColors.primaryTextColor,
+            color: AppColors.primaryColor,
             fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
+        centerTitle: false,
+        backgroundColor: AppColors.backgroundColor,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.primaryTextColor),
+            icon: Icon(Icons.refresh, color: AppColors.primaryColor),
             onPressed: _loadUserData,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
@@ -170,79 +172,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           const SizedBox(height: 16),
 
-          // Profile Image
-          Center(
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primaryColor.withOpacity(0.1),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryColor.withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primaryColor.withOpacity(0.2),
-                    AppColors.primaryColor.withOpacity(0.05),
-                  ],
-                ),
-                image: _user!.profileImage != null
-                    ? DecorationImage(
-                        image: NetworkImage(_user!.profileImage!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: _user!.profileImage == null
-                  ? Center(
-                      child: Text(
-                        _user!.name.substring(0, 1).toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryColor,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // User Name
-          Text(
-            _user!.name,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryTextColor,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // User Email
-          Text(
-            _user!.email,
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.secondaryTextColor,
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // User Info Card
+          // Profile Header Card
           Container(
             width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 24),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -254,89 +187,149 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   offset: const Offset(0, 5),
                 ),
               ],
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white,
-                  AppColors.primaryColor.withOpacity(0.05),
-                ],
-              ),
+            ),
+            child: Column(
+              children: [
+                // Profile Image
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primaryColor.withOpacity(0.1),
+                    border: Border.all(
+                      color: AppColors.primaryColor.withOpacity(0.3),
+                      width: 3,
+                    ),
+                    image: _user!.profileImage != null
+                        ? DecorationImage(
+                            image: NetworkImage(_user!.profileImage!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _user!.profileImage == null
+                      ? Center(
+                          child: Text(
+                            _user!.name.substring(0, 1).toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryColor,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+
+                const SizedBox(height: 16),
+
+                // User Name
+                Text(
+                  _user!.name,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryTextColor,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                // User Email
+                Text(
+                  _user!.email,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // User Info Card
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'User Information',
+                  'Account Information',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryTextColor,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // User ID
-                _buildInfoRow(
+                _buildInfoTile(
                   icon: Icons.perm_identity_outlined,
                   label: 'User ID',
                   value: _user!.id.substring(0, 8) + '...',
+                  iconColor: Colors.indigo,
                 ),
-                const SizedBox(height: 12),
 
                 // Smart Mask Status
-                _buildInfoRow(
+                _buildInfoTile(
                   icon: Icons.masks_outlined,
                   label: 'Smart Mask',
                   value: _user!.hasSmartMask ? 'Connected' : 'Not Connected',
                   valueColor: _user!.hasSmartMask
                       ? AppColors.successColor
                       : AppColors.secondaryTextColor,
+                  iconColor: AppColors.primaryColor,
                 ),
-                const SizedBox(height: 12),
 
                 // Location
-                _buildInfoRow(
+                _buildInfoTile(
                   icon: Icons.location_on_outlined,
                   label: 'Location',
                   value: _user!.location ?? 'Not Set',
+                  iconColor: Colors.orange,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
-
           // Account Settings Card
           Container(
             width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white,
-                  AppColors.primaryColor.withOpacity(0.05),
-                ],
-              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Account Settings',
+                  'Settings',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryTextColor,
                   ),
@@ -344,9 +337,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
 
                 // Edit Profile Button
-                _buildSettingsButton(
+                _buildSettingsTile(
                   icon: Icons.edit_outlined,
                   label: 'Edit Profile',
+                  iconColor: AppColors.primaryColor,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -357,9 +351,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 // Change Password Button
-                _buildSettingsButton(
+                _buildSettingsTile(
                   icon: Icons.lock_outline,
                   label: 'Change Password',
+                  iconColor: Colors.amber,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -370,9 +365,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 // Notifications Button
-                _buildSettingsButton(
+                _buildSettingsTile(
                   icon: Icons.notifications_outlined,
                   label: 'Notifications',
+                  iconColor: Colors.deepPurple,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -383,9 +379,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 // Privacy Button
-                _buildSettingsButton(
+                _buildSettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   label: 'Privacy & Security',
+                  iconColor: Colors.teal,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -399,86 +396,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          const SizedBox(height: 32),
-
           // Sign Out Button
-          CustomButton(
-            text: 'Sign Out',
-            onPressed: _signOut,
-            isOutlined: true,
-            color: AppColors.errorColor,
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(vertical: 16),
+            child: CustomButton(
+              text: 'Sign Out',
+              onPressed: _signOut,
+              isOutlined: true,
+              color: AppColors.errorColor,
+            ),
           ),
-
-          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow({
+  Widget _buildInfoTile({
     required IconData icon,
     required String label,
     required String value,
     Color? valueColor,
+    required Color iconColor,
   }) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.primaryColor,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.secondaryTextColor,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 20,
             ),
           ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: valueColor ?? AppColors.primaryTextColor,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.secondaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: valueColor ?? AppColors.primaryTextColor,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildSettingsButton({
+  Widget _buildSettingsTile({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required Color iconColor,
   }) {
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Row(
           children: [
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: iconColor.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                color: AppColors.primaryColor,
+                color: iconColor,
                 size: 20,
               ),
             ),
@@ -487,7 +499,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w500,
                   color: AppColors.primaryTextColor,
                 ),
