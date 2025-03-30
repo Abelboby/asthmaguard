@@ -239,34 +239,46 @@ class _HomeScreenState extends State<HomeScreen>
           slivers: [
             // App Bar
             SliverAppBar(
-              expandedHeight: 120.0,
-              floating: false,
+              expandedHeight: 80.0,
+              floating: true,
               pinned: true,
-              backgroundColor: Colors.transparent,
+              snap: false,
+              backgroundColor: AppColors.backgroundColor,
               elevation: 0,
               flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
                 title: Text(
                   'AsthmaGuard',
                   style: TextStyle(
-                    color: AppColors.primaryTextColor,
+                    color: AppColors.primaryColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: 18,
                   ),
                 ),
                 centerTitle: false,
                 background: Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppColors.primaryColor.withOpacity(0.2),
-                        AppColors.backgroundColor.withOpacity(0.0),
-                      ],
-                    ),
+                    color: AppColors.backgroundColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                 ),
               ),
+              actions: [
+                IconButton(
+                  icon: Icon(
+                    Icons.refresh,
+                    color: AppColors.primaryColor,
+                  ),
+                  onPressed: _loadUserAndWeatherData,
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
 
             // Content
@@ -275,34 +287,70 @@ class _HomeScreenState extends State<HomeScreen>
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // Location and Date
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 16,
-                        color: AppColors.primaryColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          _locationName,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppColors.secondaryTextColor,
-                            fontWeight: FontWeight.w500,
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
                           ),
-                          overflow: TextOverflow.ellipsis,
+                          child: Icon(
+                            Icons.location_on,
+                            size: 18,
+                            color: AppColors.primaryColor,
+                          ),
                         ),
-                      ),
-                      Text(
-                        DateTime.now().toString().substring(0, 10),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.secondaryTextColor,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Your Location',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.secondaryTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _locationName,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryTextColor,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        Text(
+                          DateTime.now().toString().substring(0, 10),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 16),
@@ -310,37 +358,34 @@ class _HomeScreenState extends State<HomeScreen>
                   // User greeting
                   if (_user != null)
                     Container(
+                      margin: const EdgeInsets.only(bottom: 24),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 16,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 8,
                             offset: const Offset(0, 2),
-                            blurRadius: 10,
                           ),
                         ],
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white,
-                            AppColors.primaryColor.withOpacity(0.1),
-                          ],
-                        ),
                       ),
                       child: Row(
                         children: [
                           Container(
-                            width: 50,
-                            height: 50,
+                            width: 55,
+                            height: 55,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: AppColors.primaryColor.withOpacity(0.1),
+                              border: Border.all(
+                                color: AppColors.primaryColor.withOpacity(0.15),
+                                width: 2,
+                              ),
                               image: _user!.profileImage != null
                                   ? DecorationImage(
                                       image: NetworkImage(_user!.profileImage!),
@@ -405,27 +450,41 @@ class _HomeScreenState extends State<HomeScreen>
                             offset: const Offset(0, 5),
                           ),
                         ],
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white,
-                            _getRiskGradientColor(_weatherData!.riskStatus)
-                                .withOpacity(0.1),
-                          ],
-                        ),
                       ),
                       child: Column(
                         children: [
-                          Text(
-                            'Current Risk Level',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryTextColor,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Current Risk Level',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryTextColor,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _getRiskColor(_weatherData!.riskStatus)
+                                      .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  _getRiskStatusText(_weatherData!.riskStatus),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        _getRiskColor(_weatherData!.riskStatus),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           Center(
                             child: RiskIndicator(
                               riskStatus: _weatherData!.riskStatus,
@@ -433,6 +492,41 @@ class _HomeScreenState extends State<HomeScreen>
                               size: 150,
                             ),
                           ),
+                          const SizedBox(height: 15),
+                          if (_weatherData!.riskStatus == AppConstants.highRisk)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.errorColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppColors.errorColor.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: AppColors.errorColor,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Please consult your doctor immediately',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.errorColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -445,7 +539,7 @@ class _HomeScreenState extends State<HomeScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Current Weather',
+                          'Weather Conditions',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -467,7 +561,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                     const SizedBox(height: 16),
-                    WeatherCard(weatherData: _weatherData!),
+                    WeatherCard(weatherData: _weatherData!, showTime: false),
                   ],
 
                   const SizedBox(height: 24),
@@ -496,13 +590,23 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Color _getRiskGradientColor(String riskStatus) {
+  Color _getRiskColor(String riskStatus) {
     if (riskStatus == AppConstants.highRisk) {
       return AppColors.highRiskColor;
     } else if (riskStatus == AppConstants.mediumRisk) {
       return AppColors.mediumRiskColor;
     } else {
       return AppColors.lowRiskColor;
+    }
+  }
+
+  String _getRiskStatusText(String riskStatus) {
+    if (riskStatus == AppConstants.highRisk) {
+      return 'High Risk';
+    } else if (riskStatus == AppConstants.mediumRisk) {
+      return 'Medium Risk';
+    } else {
+      return 'Low Risk';
     }
   }
 
@@ -518,16 +622,19 @@ class _HomeScreenState extends State<HomeScreen>
           'icon': Icons.medical_services_outlined,
           'title': 'Consult Doctor',
           'description': 'Contact your healthcare provider immediately.',
+          'color': AppColors.errorColor,
         },
         {
           'icon': Icons.home_outlined,
           'title': 'Stay Indoors',
           'description': 'Minimize outdoor activities.',
+          'color': AppColors.warningColor,
         },
         {
           'icon': Icons.masks_outlined,
           'title': 'Use Mask',
           'description': 'Use your smart mask when going outside.',
+          'color': AppColors.primaryColor,
         },
       ];
     } else if (_weatherData!.riskStatus == AppConstants.mediumRisk) {
@@ -536,16 +643,19 @@ class _HomeScreenState extends State<HomeScreen>
           'icon': Icons.masks_outlined,
           'title': 'Use Mask',
           'description': 'Consider using your smart mask when going outside.',
+          'color': AppColors.primaryColor,
         },
         {
           'icon': Icons.air_outlined,
           'title': 'Limit Exposure',
           'description': 'Limit time spent in areas with poor air quality.',
+          'color': AppColors.warningColor,
         },
         {
           'icon': Icons.medical_services_outlined,
           'title': 'Monitor Symptoms',
           'description': 'Keep track of any symptoms you experience.',
+          'color': Colors.purple,
         },
       ];
     } else {
@@ -554,90 +664,76 @@ class _HomeScreenState extends State<HomeScreen>
           'icon': Icons.favorite_outline,
           'title': 'Stay Active',
           'description': 'Continue your regular activities.',
+          'color': AppColors.successColor,
         },
         {
           'icon': Icons.air_outlined,
           'title': 'Fresh Air',
           'description': 'Enjoy outdoor activities.',
+          'color': Colors.blue,
         },
         {
           'icon': Icons.water_drop_outlined,
           'title': 'Stay Hydrated',
           'description': 'Drink plenty of water.',
+          'color': Colors.cyan,
         },
       ];
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+    return Column(
+      children: recommendations.map((rec) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            AppColors.primaryColor.withOpacity(0.05),
-          ],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: recommendations.map((rec) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    rec['icon'] as IconData,
-                    color: AppColors.primaryColor,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        rec['title'] as String,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        rec['description'] as String,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.secondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
             ),
-          );
-        }).toList(),
-      ),
+            leading: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: (rec['color'] as Color).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                rec['icon'] as IconData,
+                color: rec['color'] as Color,
+                size: 24,
+              ),
+            ),
+            title: Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                rec['title'] as String,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            subtitle: Text(
+              rec['description'] as String,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.secondaryTextColor,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
