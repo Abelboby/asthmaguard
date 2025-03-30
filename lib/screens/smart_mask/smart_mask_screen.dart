@@ -184,7 +184,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
                     // Last updated
                     if (_isConnected && _breathData != null)
                       Text(
-                        'Last updated: ${_breathData!.timestamp.hour}:${_breathData!.timestamp.minute.toString().padLeft(2, '0')}',
+                        'Last updated: ${_formatTimeIn12Hour(_breathData!.timestamp)}',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.secondaryTextColor,
@@ -390,5 +390,17 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
     } else {
       return AppColors.successColor;
     }
+  }
+
+  // Helper method to format time in 12-hour format
+  String _formatTimeIn12Hour(DateTime time) {
+    final hour = time.hour > 12
+        ? time.hour - 12
+        : time.hour == 0
+            ? 12
+            : time.hour;
+    final period = time.hour >= 12 ? 'PM' : 'AM';
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
   }
 }

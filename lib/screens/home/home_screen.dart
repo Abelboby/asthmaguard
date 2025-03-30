@@ -14,6 +14,7 @@ import '../../widgets/risk_indicator.dart';
 import '../../widgets/weather_card.dart';
 import '../../widgets/custom_button.dart';
 import '../auth/login_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -270,14 +271,49 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
               actions: [
-                IconButton(
-                  icon: Icon(
-                    Icons.refresh,
-                    color: AppColors.primaryColor,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 16),
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryColor.withOpacity(0.1),
+                      border: Border.all(
+                        color: AppColors.primaryColor.withOpacity(0.3),
+                        width: 2,
+                      ),
+                      image: _user?.profileImage != null
+                          ? DecorationImage(
+                              image: NetworkImage(_user!.profileImage!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: _user?.profileImage == null
+                        ? Center(
+                            child: Text(
+                              _user != null && _user!.name.isNotEmpty
+                                  ? _user!.name.substring(0, 1).toUpperCase()
+                                  : 'A',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                          )
+                        : null,
                   ),
-                  onPressed: _loadUserAndWeatherData,
                 ),
-                const SizedBox(width: 8),
               ],
             ),
 
@@ -286,81 +322,12 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // Location and Date
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.location_on,
-                            size: 18,
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Your Location',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.secondaryTextColor,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _locationName,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryTextColor,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          DateTime.now().toString().substring(0, 10),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // User greeting
+                  // Combined Greeting and Location Card
                   if (_user != null)
                     Container(
-                      margin: const EdgeInsets.only(bottom: 24),
+                      margin: const EdgeInsets.only(bottom: 24, top: 16),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                        horizontal: 20,
                         vertical: 16,
                       ),
                       decoration: BoxDecoration(
@@ -374,60 +341,76 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 55,
-                            height: 55,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.primaryColor.withOpacity(0.1),
-                              border: Border.all(
-                                color: AppColors.primaryColor.withOpacity(0.15),
-                                width: 2,
-                              ),
-                              image: _user!.profileImage != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(_user!.profileImage!),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
+                          // Greeting
+                          Text(
+                            'Hello, ${_user!.name}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryTextColor,
                             ),
-                            child: _user!.profileImage == null
-                                ? Center(
-                                    child: Text(
-                                      _user!.name.substring(0, 1).toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primaryColor,
-                                      ),
-                                    ),
-                                  )
-                                : null,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Hello, ${_user!.name}',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryTextColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Here\'s your asthma risk assessment',
+                          const SizedBox(height: 4),
+
+                          // Location with icon
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                size: 16,
+                                color: AppColors.primaryColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  _locationName,
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: AppColors.secondaryTextColor,
+                                    fontWeight: FontWeight.w500,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // Risk assessment message
+                          Text(
+                            'Here\'s your asthma risk assessment for today',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.secondaryTextColor,
+                            ),
+                          ),
+
+                          // Pull to refresh hint
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: _loadUserAndWeatherData,
+                              icon: Icon(
+                                Icons.refresh,
+                                size: 14,
+                                color: AppColors.primaryColor,
+                              ),
+                              label: Text(
+                                'Refresh',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size(10, 10),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                             ),
                           ),
                         ],
@@ -547,12 +530,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
                         Text(
-                          'Last updated: ' +
-                              _weatherData!.timestamp.hour.toString() +
-                              ':' +
-                              _weatherData!.timestamp.minute
-                                  .toString()
-                                  .padLeft(2, '0'),
+                          'Last updated: ${_formatTimeIn12Hour(_weatherData!.timestamp)}',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.secondaryTextColor,
@@ -735,5 +713,17 @@ class _HomeScreenState extends State<HomeScreen>
         );
       }).toList(),
     );
+  }
+
+  // Helper method to format time in 12-hour format
+  String _formatTimeIn12Hour(DateTime time) {
+    final hour = time.hour > 12
+        ? time.hour - 12
+        : time.hour == 0
+            ? 12
+            : time.hour;
+    final period = time.hour >= 12 ? 'PM' : 'AM';
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
   }
 }
