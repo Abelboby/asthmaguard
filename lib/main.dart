@@ -1,9 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_layout.dart';
 import 'constants/app_colors.dart';
+import 'providers/weather_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,27 +18,32 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AsthmaGuard',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryColor),
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.backgroundColor,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: IconThemeData(
-            color: AppColors.primaryTextColor,
-          ),
-          titleTextStyle: TextStyle(
-            color: AppColors.primaryTextColor,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => WeatherProvider()),
+      ],
+      child: MaterialApp(
+        title: 'AsthmaGuard',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryColor),
+          useMaterial3: true,
+          scaffoldBackgroundColor: AppColors.backgroundColor,
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: IconThemeData(
+              color: AppColors.primaryTextColor,
+            ),
+            titleTextStyle: TextStyle(
+              color: AppColors.primaryTextColor,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
+        home: const AuthGate(),
       ),
-      home: const AuthGate(),
     );
   }
 }

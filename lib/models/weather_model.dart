@@ -7,6 +7,7 @@ class WeatherModel {
   final double actScore;
   final String riskStatus;
   final DateTime timestamp;
+  final String locationName;
 
   WeatherModel({
     required this.temperature,
@@ -17,6 +18,7 @@ class WeatherModel {
     required this.actScore,
     required this.riskStatus,
     required this.timestamp,
+    this.locationName = 'Unknown location',
   });
 
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class WeatherModel {
       timestamp: json['timestamp'] != null
           ? DateTime.parse(json['timestamp'])
           : DateTime.now(),
+      locationName: json['locationName'] ?? 'Unknown location',
     );
   }
 
@@ -54,6 +57,7 @@ class WeatherModel {
       'actScore': actScore,
       'riskStatus': riskStatus,
       'timestamp': timestamp.toIso8601String(),
+      'locationName': locationName,
     };
   }
 
@@ -67,6 +71,7 @@ class WeatherModel {
       actScore: 0.0,
       riskStatus: 'Unknown',
       timestamp: DateTime.now(),
+      locationName: 'Unknown location',
     );
   }
 }

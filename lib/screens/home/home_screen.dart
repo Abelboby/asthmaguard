@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_constants.dart';
 import '../../models/user_model.dart';
 import '../../models/weather_model.dart';
 import '../../services/auth_service.dart';
-import '../../services/weather_service.dart';
-import '../../services/database_service.dart';
+import '../../providers/weather_provider.dart';
 import '../../widgets/risk_indicator.dart';
 import '../../widgets/weather_card.dart';
 import '../../widgets/custom_button.dart';
@@ -26,14 +23,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   final _authService = AuthService();
-  final _weatherService = WeatherService();
-  final _databaseService = DatabaseService();
-
   bool _isLoading = true;
   UserModel? _user;
-  WeatherModel? _weatherData;
   String _errorMessage = '';
-  String _locationName = 'Loading location...';
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -51,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen>
         curve: Curves.easeIn,
       ),
     );
-    _loadUserAndWeatherData();
+    _loadUserData();
   }
 
   @override
@@ -60,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  Future<void> _loadUserAndWeatherData() async {
+  Future<void> _loadUserData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -77,25 +69,22 @@ class _HomeScreenState extends State<HomeScreen>
 
       _user = user;
 
-      // Get current location coordinates
-      final position = await _determinePosition();
-
-      // Get location name
-      final locationName =
-          await _getLocationName(position.latitude, position.longitude);
-
-      // Fetch weather data
-      final weatherData = await _weatherService.fetchWeatherByLocation();
-      final processedWeatherData =
-          await _weatherService.processWeatherData(weatherData);
-
-      // Save weather data to database
-      await _databaseService.saveWeatherData(_user!.id, processedWeatherData);
-
+      // Initialize the weather provider with user data
       if (mounted) {
+        final weatherProvider =
+            Provider.of<WeatherProvider>(context, listen: false);
+
+        // If the provider has no data, initialize it from Firebase
+        if (!weatherProvider.hasData) {
+          await weatherProvider.initialize(_user!);
+
+          // If still no data after initialization, refresh from API
+          if (!weatherProvider.hasData) {
+            await weatherProvider.refreshWeatherData(_user!);
+          }
+        }
+
         setState(() {
-          _weatherData = processedWeatherData;
-          _locationName = locationName;
           _isLoading = false;
         });
         _animationController.forward();
@@ -105,60 +94,38 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _errorMessage = 'Error loading data: ${e.toString()}';
           _isLoading = false;
-          _locationName = 'Location unavailable';
         });
       }
     }
   }
 
-  Future<Position> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-          'Location permissions are permanently denied, cannot request permissions.');
-    }
-
-    return await Geolocator.getCurrentPosition();
-  }
-
-  Future<String> _getLocationName(double latitude, double longitude) async {
+  // Handle pull-to-refresh - now uses the provider
+  Future<void> _handlePullToRefresh() async {
     try {
-      final response = await http.get(Uri.parse(
-          'https://api.openweathermap.org/geo/1.0/reverse?lat=$latitude&lon=$longitude&limit=1&appid=${AppConstants.weatherApiKey}'));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        if (data.isNotEmpty) {
-          final String city = data[0]['name'];
-          final String country = data[0]['country'];
-          return '$city, $country';
-        }
+      if (_user != null) {
+        final weatherProvider =
+            Provider.of<WeatherProvider>(context, listen: false);
+        await weatherProvider.refreshWeatherData(_user!);
       }
-      return 'Unknown location';
     } catch (e) {
-      return 'Unknown location';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error refreshing data: ${e.toString()}')),
+        );
+      }
     }
+    return Future.value();
   }
 
   Future<void> _signOut() async {
     try {
       await _authService.signOut();
+
+      // Reset the provider on sign out
+      if (mounted) {
+        Provider.of<WeatherProvider>(context, listen: false).reset();
+      }
+
       _navigateToLogin();
     } catch (e) {
       setState(() {
@@ -176,19 +143,26 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Get the weather provider
+    final weatherProvider = Provider.of<WeatherProvider>(context);
+    final weatherData = weatherProvider.weatherData;
+    final isProviderLoading = weatherProvider.isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: _isLoading
+      body: _isLoading || isProviderLoading
           ? const Center(
               child: CircularProgressIndicator(),
             )
-          : _errorMessage.isNotEmpty
-              ? _buildErrorView()
-              : _buildHomeContent(),
+          : _errorMessage.isNotEmpty || weatherProvider.errorMessage.isNotEmpty
+              ? _buildErrorView(weatherProvider.errorMessage)
+              : _buildHomeContent(weatherData),
     );
   }
 
-  Widget _buildErrorView() {
+  Widget _buildErrorView(String providerError) {
+    final errorMsg = _errorMessage.isNotEmpty ? _errorMessage : providerError;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -211,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              _errorMessage,
+              errorMsg,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -221,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 24),
             CustomButton(
               text: 'Retry',
-              onPressed: _loadUserAndWeatherData,
+              onPressed: _loadUserData,
               width: 200,
             ),
           ],
@@ -230,11 +204,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildHomeContent() {
+  Widget _buildHomeContent(WeatherModel? weatherData) {
     return FadeTransition(
       opacity: _fadeAnimation,
       child: RefreshIndicator(
-        onRefresh: _loadUserAndWeatherData,
+        onRefresh: _handlePullToRefresh,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -366,7 +340,8 @@ class _HomeScreenState extends State<HomeScreen>
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  _locationName,
+                                  weatherData?.locationName ??
+                                      'Loading location...',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: AppColors.secondaryTextColor,
@@ -395,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 24),
 
                   // Risk indicator
-                  if (_weatherData != null)
+                  if (weatherData != null)
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -426,17 +401,17 @@ class _HomeScreenState extends State<HomeScreen>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: _getRiskColor(_weatherData!.riskStatus)
+                                  color: _getRiskColor(weatherData.riskStatus)
                                       .withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  _getRiskStatusText(_weatherData!.riskStatus),
+                                  _getRiskStatusText(weatherData.riskStatus),
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color:
-                                        _getRiskColor(_weatherData!.riskStatus),
+                                        _getRiskColor(weatherData.riskStatus),
                                   ),
                                 ),
                               ),
@@ -445,13 +420,13 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(height: 20),
                           Center(
                             child: RiskIndicator(
-                              riskStatus: _weatherData!.riskStatus,
-                              actScore: _weatherData!.actScore,
+                              riskStatus: weatherData.riskStatus,
+                              actScore: weatherData.actScore,
                               size: 150,
                             ),
                           ),
                           const SizedBox(height: 15),
-                          if (_weatherData!.riskStatus == AppConstants.highRisk)
+                          if (weatherData.riskStatus == AppConstants.highRisk)
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
@@ -492,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 24),
 
                   // Weather data
-                  if (_weatherData != null) ...[
+                  if (weatherData != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -505,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
                         Text(
-                          'Last updated: ${_formatTimeIn12Hour(_weatherData!.timestamp)}',
+                          'Last updated: ${_formatTimeIn12Hour(weatherData.timestamp)}',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.secondaryTextColor,
@@ -514,13 +489,13 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                     const SizedBox(height: 16),
-                    WeatherCard(weatherData: _weatherData!, showTime: false),
+                    WeatherCard(weatherData: weatherData, showTime: false),
                   ],
 
                   const SizedBox(height: 24),
 
                   // Recommendations
-                  if (_weatherData != null) ...[
+                  if (weatherData != null) ...[
                     Text(
                       'Recommendations',
                       style: TextStyle(
@@ -530,7 +505,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildRecommendations(),
+                    _buildRecommendations(weatherData),
                   ],
 
                   const SizedBox(height: 24),
@@ -563,13 +538,10 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Widget _buildRecommendations() {
-    if (_weatherData == null) return const SizedBox.shrink();
-
-    // Choose recommendations based on risk status
+  Widget _buildRecommendations(WeatherModel weatherData) {
     List<Map<String, dynamic>> recommendations = [];
 
-    if (_weatherData!.riskStatus == AppConstants.highRisk) {
+    if (weatherData.riskStatus == AppConstants.highRisk) {
       recommendations = [
         {
           'icon': Icons.medical_services_outlined,
@@ -590,7 +562,7 @@ class _HomeScreenState extends State<HomeScreen>
           'color': AppColors.primaryColor,
         },
       ];
-    } else if (_weatherData!.riskStatus == AppConstants.mediumRisk) {
+    } else if (weatherData.riskStatus == AppConstants.mediumRisk) {
       recommendations = [
         {
           'icon': Icons.masks_outlined,

@@ -24,7 +24,7 @@ class WeatherService {
   // Fetch weather data by user location
   Future<Map<String, dynamic>> fetchWeatherByLocation() async {
     try {
-      final position = await _determinePosition();
+      final position = await determinePosition();
 
       final response = await http.get(Uri.parse(
           '${AppConstants.weatherApiBaseUrl}/weather?lat=${position.latitude}&lon=${position.longitude}&appid=${AppConstants.weatherApiKey}'));
@@ -36,6 +36,53 @@ class WeatherService {
       }
     } catch (e) {
       throw Exception('Error fetching weather data: $e');
+    }
+  }
+
+  // Get location coordinates
+  Future<Position> determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception(
+          'Location permissions are permanently denied, cannot request permissions.');
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  // Get location name from coordinates
+  Future<String> getLocationName(double latitude, double longitude) async {
+    try {
+      final response = await http.get(Uri.parse(
+          'https://api.openweathermap.org/geo/1.0/reverse?lat=$latitude&lon=$longitude&limit=1&appid=${AppConstants.weatherApiKey}'));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        if (data.isNotEmpty) {
+          final String city = data[0]['name'];
+          final String country = data[0]['country'];
+          return '$city, $country';
+        }
+      }
+      return 'Unknown location';
+    } catch (e) {
+      return 'Unknown location';
     }
   }
 
@@ -122,32 +169,5 @@ class WeatherService {
     score = score.clamp(10.0, 30.0);
 
     return score;
-  }
-
-  // Get current location
-  Future<Position> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-          'Location permissions are permanently denied, cannot request permissions.');
-    }
-
-    return await Geolocator.getCurrentPosition();
   }
 }
