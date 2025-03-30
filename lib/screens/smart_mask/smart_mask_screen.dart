@@ -311,19 +311,19 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
                 'Breath Temperature',
                 '${_breathData!.breathTemperature}°C',
                 Icons.thermostat_outlined,
-                AppColors.primaryColor,
+                AppColors.primaryColor, // Teal blue
               ),
               _buildBreathDataTile(
                 'Breath Humidity',
                 '${_breathData!.breathHumidity}%',
                 Icons.water_drop_outlined,
-                Colors.blue,
+                AppColors.primaryColor, // Teal blue
               ),
               _buildBreathDataTile(
                 'Breath Score',
                 '${_breathData!.score}/100',
                 Icons.favorite_outline,
-                Colors.red,
+                AppColors.primaryColor, // Teal blue
               ),
               _buildBreathDataTile(
                 'Status',
@@ -429,19 +429,19 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
         'icon': Icons.masks_outlined,
         'title': 'Connect Smart Mask',
         'description': 'Connect your mask to get personalized recommendations.',
-        'color': AppColors.primaryColor,
+        'color': AppColors.primaryColor, // Teal blue
       },
       {
         'icon': Icons.air_outlined,
         'title': 'Check Air Quality',
         'description': 'Be aware of your local air quality conditions.',
-        'color': Colors.blue,
+        'color': AppColors.primaryColor, // Teal blue
       },
       {
         'icon': Icons.health_and_safety_outlined,
         'title': 'Monitor Symptoms',
         'description': 'Keep track of any respiratory symptoms you experience.',
-        'color': Colors.purple,
+        'color': AppColors.primaryColor, // Teal blue
       },
     ];
 
@@ -455,20 +455,20 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
             'icon': Icons.medical_services_outlined,
             'title': 'Consult Doctor',
             'description': 'Contact your healthcare provider immediately.',
-            'color': AppColors.errorColor,
+            'color': AppColors.errorColor, // Keep red for error
           },
           {
             'icon': Icons.home_outlined,
             'title': 'Stay Indoors',
             'description': 'Minimize outdoor activities.',
-            'color': AppColors.warningColor,
+            'color': AppColors.primaryColor, // Teal blue
           },
           {
             'icon': Icons.masks_outlined,
             'title': 'Keep Mask On',
             'description':
                 'Continue using your smart mask to monitor your condition.',
-            'color': AppColors.primaryColor,
+            'color': AppColors.primaryColor, // Teal blue
           },
         ];
       } else if (riskStatus.contains('medium')) {
@@ -478,19 +478,19 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
             'title': 'Use Smart Mask',
             'description':
                 'Continue monitoring your breath data with the smart mask.',
-            'color': AppColors.primaryColor,
+            'color': AppColors.primaryColor, // Teal blue
           },
           {
             'icon': Icons.air_outlined,
             'title': 'Monitor Environment',
             'description': 'Be aware of air quality in your surroundings.',
-            'color': AppColors.warningColor,
+            'color': AppColors.primaryColor, // Teal blue
           },
           {
             'icon': Icons.medical_services_outlined,
             'title': 'Track Symptoms',
             'description': 'Record any symptoms you experience in a journal.',
-            'color': Colors.purple,
+            'color': AppColors.primaryColor, // Teal blue
           },
         ];
       } else {
@@ -499,19 +499,19 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
             'icon': Icons.favorite_outline,
             'title': 'Maintain Wellness',
             'description': 'Continue your healthy routine with the smart mask.',
-            'color': AppColors.successColor,
+            'color': AppColors.successColor, // Teal blue
           },
           {
             'icon': Icons.water_drop_outlined,
             'title': 'Stay Hydrated',
             'description': 'Drink plenty of water throughout the day.',
-            'color': Colors.blue,
+            'color': AppColors.primaryColor, // Teal blue
           },
           {
             'icon': Icons.nightlight_outlined,
             'title': 'Quality Sleep',
             'description': 'Ensure you get adequate rest.',
-            'color': Colors.indigo,
+            'color': AppColors.primaryColor, // Teal blue
           },
         ];
       }

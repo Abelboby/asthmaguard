@@ -163,7 +163,7 @@ class WeatherCard extends StatelessWidget {
                 'Humidity',
                 '${weatherData.humidity}%',
                 Icons.water_drop_outlined,
-                Colors.blue,
+                AppColors.primaryColor,
                 isSafe: safetyCheck?['humidity'],
                 safeRange: prescription != null
                     ? '${prescription!.minHumidity}-${prescription!.maxHumidity}%'
@@ -173,7 +173,7 @@ class WeatherCard extends StatelessWidget {
                 'Pressure',
                 '${weatherData.pressure} hPa',
                 Icons.speed_outlined,
-                Colors.orange,
+                AppColors.primaryColor,
                 isSafe: safetyCheck?['pressure'],
                 safeRange: prescription != null
                     ? '${prescription!.minPressure}-${prescription!.maxPressure} hPa'
@@ -183,7 +183,7 @@ class WeatherCard extends StatelessWidget {
                 'Wind Speed',
                 '${weatherData.windSpeed} m/s',
                 Icons.air_outlined,
-                Colors.teal,
+                AppColors.primaryColor,
                 isSafe: safetyCheck?['windSpeed'],
                 safeRange: prescription != null
                     ? 'Max ${prescription!.maxWindSpeed} m/s'
@@ -195,7 +195,7 @@ class WeatherCard extends StatelessWidget {
                   'UV Index',
                   weatherData.uvIndex!,
                   Icons.wb_sunny_outlined,
-                  Colors.amber,
+                  AppColors.primaryColor,
                 ),
             ],
           ),
