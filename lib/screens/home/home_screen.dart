@@ -255,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen>
                     );
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+                    margin: const EdgeInsets.only(right: 16, bottom: 16),
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
