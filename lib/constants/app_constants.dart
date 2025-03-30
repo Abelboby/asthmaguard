@@ -10,9 +10,11 @@ class AppConstants {
   static const String mediumRisk = 'Medium risk';
   static const String lowRisk = 'Low risk';
 
-  // ACT Score Thresholds
-  static const double highRiskThreshold = 25.0;
-  static const double mediumRiskThreshold = 20.0;
+  // ACT Score Thresholds - Updated to reflect standard interpretation
+  // Lower scores indicate higher risk (poorer control)
+  static const double lowRiskThreshold = 20.0;  // ACT score ≥ 20 is low risk (well controlled)
+  static const double mediumRiskThreshold = 16.0;  // ACT score 16-19 is medium risk (partially controlled)
+  // Below 16 is high risk (poorly controlled)
 
   // Firebase Collection Names
   static const String usersCollection = 'users';

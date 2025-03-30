@@ -117,9 +117,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Logo and App name
                   Column(
                     children: [
-                      Icon(
-                        Icons.health_and_safety,
-                        size: 80,
+                      Image.asset(
+                        'assets/images/respiratory-care.png',
+                        height: 80,
+                        width: 80,
                         color: AppColors.primaryColor,
                       ),
                       const SizedBox(height: 16),

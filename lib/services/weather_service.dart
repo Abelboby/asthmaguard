@@ -104,14 +104,15 @@ class WeatherService {
       double actScore =
           calculateActScore(temperature, humidity, pressure, windSpeed);
 
-      // Determine risk status
+      // Determine risk status based on updated thresholds
+      // Higher ACT score = better control = lower risk
       String riskStatus;
-      if (actScore >= AppConstants.highRiskThreshold) {
-        riskStatus = AppConstants.highRisk;
+      if (actScore >= AppConstants.lowRiskThreshold) {
+        riskStatus = AppConstants.lowRisk;
       } else if (actScore >= AppConstants.mediumRiskThreshold) {
         riskStatus = AppConstants.mediumRisk;
       } else {
-        riskStatus = AppConstants.lowRisk;
+        riskStatus = AppConstants.highRisk;
       }
 
       return WeatherModel(

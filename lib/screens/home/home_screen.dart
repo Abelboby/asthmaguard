@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_constants.dart';
@@ -127,22 +126,6 @@ class _HomeScreenState extends State<HomeScreen>
     return Future.value();
   }
 
-  Future<void> _signOut() async {
-    try {
-      await _authService.signOut();
-
-      // Reset the provider on sign out
-      if (mounted) {
-        Provider.of<WeatherProvider>(context, listen: false).reset();
-      }
-
-      _navigateToLogin();
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error signing out: ${e.toString()}';
-      });
-    }
-  }
 
   void _navigateToLogin() {
     Navigator.pushReplacement(
@@ -689,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _showActScoreInfo(BuildContext context) {
-    // Implement the logic to show an info dialog explaining the ACT score's significance
+    // Updated ACT score information dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -762,23 +745,23 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               const SizedBox(height: 8),
               _buildScoreRange(
-                '25-30',
+                '5-15',
                 'High Risk',
-                'Urgent attention needed. Consult your doctor immediately.',
+                'Poorly controlled asthma. Consult your doctor immediately.',
                 AppColors.highRiskColor,
               ),
               const SizedBox(height: 8),
               _buildScoreRange(
-                '20-24',
+                '16-19',
                 'Medium Risk',
-                'Increased chance of asthma symptoms. Monitor your condition closely.',
+                'Partially controlled asthma. Monitor your condition closely.',
                 AppColors.mediumRiskColor,
               ),
               const SizedBox(height: 8),
               _buildScoreRange(
-                'Below 20',
+                '20-25',
                 'Low Risk',
-                'Your asthma is relatively well-controlled under current conditions.',
+                'Well-controlled asthma under current conditions.',
                 AppColors.lowRiskColor,
               ),
             ],
