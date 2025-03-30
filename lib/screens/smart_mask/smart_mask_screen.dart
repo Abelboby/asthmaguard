@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import '../../constants/app_constants.dart';
 import '../../widgets/custom_button.dart';
 import '../../models/breath_data_model.dart';
 
@@ -225,9 +226,21 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
               ),
 
               // Breath Data
-              if (_isConnected && _breathData != null) ...[
-                _buildBreathDataCard(),
-              ],
+              if (_isConnected && _breathData != null) _buildBreathDataCard(),
+
+              const SizedBox(height: 24),
+
+              // Recommendations - Now always visible regardless of connection status
+              Text(
+                'Recommendations',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildRecommendations(),
             ],
           ),
         ),
@@ -290,7 +303,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             crossAxisCount: 2,
-            childAspectRatio: 1.5,
+            childAspectRatio: 2.0, // Increased from 1.7 to provide more height
             padding: const EdgeInsets.all(0),
             mainAxisSpacing: 15,
             crossAxisSpacing: 15,
@@ -337,45 +350,50 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(15),
       ),
-      padding: const EdgeInsets.all(15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(12), // Reduced padding from 15
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 18,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.secondaryTextColor,
-              fontWeight: FontWeight.w500,
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+            child: Icon(
+              icon,
               color: iconColor,
+              size: 16,
             ),
-            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11, // Reduced from 12
+                    color: AppColors.secondaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: iconColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -402,5 +420,157 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
     final period = time.hour >= 12 ? 'PM' : 'AM';
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute $period';
+  }
+
+  // Building recommendations based on breath data risk status
+  Widget _buildRecommendations() {
+    // Default recommendations when not connected or no breath data
+    List<Map<String, dynamic>> recommendations = [
+      {
+        'icon': Icons.masks_outlined,
+        'title': 'Connect Smart Mask',
+        'description': 'Connect your mask to get personalized recommendations.',
+        'color': AppColors.primaryColor,
+      },
+      {
+        'icon': Icons.air_outlined,
+        'title': 'Check Air Quality',
+        'description': 'Be aware of your local air quality conditions.',
+        'color': Colors.blue,
+      },
+      {
+        'icon': Icons.health_and_safety_outlined,
+        'title': 'Monitor Symptoms',
+        'description': 'Keep track of any respiratory symptoms you experience.',
+        'color': Colors.purple,
+      },
+    ];
+
+    // If connected and has breath data, show personalized recommendations
+    if (_breathData != null) {
+      final riskStatus = _breathData!.riskStatus.toLowerCase();
+
+      if (riskStatus.contains('high')) {
+        recommendations = [
+          {
+            'icon': Icons.medical_services_outlined,
+            'title': 'Consult Doctor',
+            'description': 'Contact your healthcare provider immediately.',
+            'color': AppColors.errorColor,
+          },
+          {
+            'icon': Icons.home_outlined,
+            'title': 'Stay Indoors',
+            'description': 'Minimize outdoor activities.',
+            'color': AppColors.warningColor,
+          },
+          {
+            'icon': Icons.masks_outlined,
+            'title': 'Keep Mask On',
+            'description':
+                'Continue using your smart mask to monitor your condition.',
+            'color': AppColors.primaryColor,
+          },
+        ];
+      } else if (riskStatus.contains('medium')) {
+        recommendations = [
+          {
+            'icon': Icons.masks_outlined,
+            'title': 'Use Smart Mask',
+            'description':
+                'Continue monitoring your breath data with the smart mask.',
+            'color': AppColors.primaryColor,
+          },
+          {
+            'icon': Icons.air_outlined,
+            'title': 'Monitor Environment',
+            'description': 'Be aware of air quality in your surroundings.',
+            'color': AppColors.warningColor,
+          },
+          {
+            'icon': Icons.medical_services_outlined,
+            'title': 'Track Symptoms',
+            'description': 'Record any symptoms you experience in a journal.',
+            'color': Colors.purple,
+          },
+        ];
+      } else {
+        recommendations = [
+          {
+            'icon': Icons.favorite_outline,
+            'title': 'Maintain Wellness',
+            'description': 'Continue your healthy routine with the smart mask.',
+            'color': AppColors.successColor,
+          },
+          {
+            'icon': Icons.water_drop_outlined,
+            'title': 'Stay Hydrated',
+            'description': 'Drink plenty of water throughout the day.',
+            'color': Colors.blue,
+          },
+          {
+            'icon': Icons.nightlight_outlined,
+            'title': 'Quality Sleep',
+            'description': 'Ensure you get adequate rest.',
+            'color': Colors.indigo,
+          },
+        ];
+      }
+    }
+
+    return Column(
+      children: recommendations.map((rec) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            leading: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: (rec['color'] as Color).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                rec['icon'] as IconData,
+                color: rec['color'] as Color,
+                size: 24,
+              ),
+            ),
+            title: Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                rec['title'] as String,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            subtitle: Text(
+              rec['description'] as String,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.secondaryTextColor,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 }
