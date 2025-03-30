@@ -1,0 +1,123 @@
+!pip install anvil-uplink
+import anvil.server
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
+import xgboost as xgb
+import requests
+
+anvil.server.connect("server_YL2YHJK243Y2L5I2JO6XP7TB-GPXOVMTFLBISPNAB")
+
+@anvil.server.callable
+def get_prediction():
+
+
+    BASE_URL = "http://api.openweathermap.org/data/2.5/weather?"
+    API_KEY = "4dab8e432c434f071363d2f31230cbad"
+    CITY = "Kodakara"
+    url = BASE_URL + "appid=" + API_KEY + "&q=" + CITY
+    response = requests.get(url).json()
+
+    temperature = response['main']['temp']
+    t = temperature - 273.15
+    humidity = response['main']['humidity']
+    pressure = response['main']['pressure']
+    wind_speed = response['wind']['speed']
+
+    df = pd.read_csv('/content/210526WeAdatasetRegression.csv')
+    X = df[['Temperature', 'Humidity', 'Pressure', 'WindSpeed']]
+    y = df['ACTScore']
+
+    # Feature scaling
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+    # Initialize XGBoost model
+    model = xgb.XGBRegressor()
+
+
+    # Define parameter grid for GridSearchCV
+    param_grid = {
+        'n_estimators': [100, 200],
+        'learning_rate': [0.01, 0.1],
+        'max_depth': [3, 5],
+        'min_child_weight': [1, 3]
+    }
+
+    # Perform grid search
+    grid_search = GridSearchCV(model, param_grid, scoring='neg_mean_squared_error', cv=5)
+    grid_search.fit(X_train, y_train)
+
+    best_model = grid_search.best_estimator_
+
+    new_data = pd.DataFrame({
+        'Temperature': [t],
+        'Humidity': [humidity],
+        'Pressure': [pressure],
+        'WindSpeed': [wind_speed]
+    })
+
+    # Scale new data
+    new_data_scaled = scaler.transform(new_data)
+
+    # Make predictions
+    predicted_act = best_model.predict(new_data_scaled)
+
+    y_pred = best_model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+
+    # Baseline model (predicting the mean of the target variable)
+    baseline_pred = np.mean(y_train)
+    baseline_mse = mean_squared_error(y_test, [baseline_pred] * len(y_test))
+
+    accuracy_percentage = (1 - mse / baseline_mse) * 100
+
+    if predicted_act[0] >= 25:
+        risk_status = "High risk - Consult a doctor immediately"
+    elif predicted_act[0] >= 20:
+        risk_status = "Medium risk"
+    else:
+        risk_status = "Low risk"
+
+    global output
+    output= {
+        "temperature": f"{t:.2f}°C",
+        "humidity": f"{humidity}%",
+        "pressure": f"{pressure} hPa",
+        "wind_speed": f"{wind_speed} m/s",
+        "predicted_act_score": f"{predicted_act[0]:.2f}",
+        "risk_status": risk_status,
+        "mse": f"{mse:.2f}",
+        "accuracy_percentage": f"{accuracy_percentage:.2f}%"
+    }
+
+    return output
+
+@anvil.server.callable
+def get_risk_status():
+
+   breath_df = pd.read_csv('/content/sheet.csv')
+   X_breath = breath_df[['BreathTemp', 'BreathHum']]
+   y_breath = breath_df['Score']
+
+   X_breath_train, X_breath_test, y_breath_train, y_breath_test = train_test_split(X_breath, y_breath, test_size=0.2, random_state=42)
+   breath_model = xgb.XGBClassifier()
+   breath_model.fit(X_breath_train, y_breath_train)
+
+   new_breath_data = pd.DataFrame({
+        'BreathTemp': [35],
+        'BreathHum': [8]
+    })
+
+   predicted_risk = breath_model.predict(new_breath_data)
+
+   internal = "High risk" if predicted_risk[0] == 1 else "No immediate action needed. All safe"
+
+   return internal
+
+
+
