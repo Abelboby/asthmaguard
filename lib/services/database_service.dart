@@ -193,4 +193,25 @@ class DatabaseService {
       throw Exception('Error getting prescription history: $e');
     }
   }
+
+  // Delete doctor prescription
+  Future<void> deletePrescription(String userId) async {
+    try {
+      // Delete the latest prescription
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .collection('prescriptions')
+          .doc('latest')
+          .delete();
+
+      // Update user model to indicate they no longer have a prescription
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .update({'hasPrescription': false});
+    } catch (e) {
+      throw Exception('Error deleting prescription: $e');
+    }
+  }
 }

@@ -28,6 +28,8 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isDeleting = false;
+  bool _isEditing = false;
   String _errorMessage = '';
   PrescriptionModel? _prescription;
 
@@ -75,6 +77,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
       setState(() {
         _prescription = prescription;
         _isLoading = false;
+        _isEditing = prescription != null;
       });
 
       if (prescription != null) {
@@ -136,6 +139,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         setState(() {
           _prescription = prescription;
           _isSaving = false;
+          _isEditing = true;
         });
       }
     } catch (e) {
@@ -148,13 +152,78 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     }
   }
 
+  Future<void> _deletePrescription() async {
+    // Show confirmation dialog before deleting
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Prescription?'),
+        content: const Text(
+            'Are you sure you want to delete this prescription? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.errorColor,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    setState(() {
+      _isDeleting = true;
+      _errorMessage = '';
+    });
+
+    try {
+      await _databaseService.deletePrescription(widget.user.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Prescription deleted successfully')));
+
+        // Reset form
+        _minTempController.text = '15.0';
+        _maxTempController.text = '30.0';
+        _minHumidityController.text = '30';
+        _maxHumidityController.text = '70';
+        _minPressureController.text = '990';
+        _maxPressureController.text = '1030';
+        _maxWindSpeedController.text = '5.0';
+        _doctorNameController.text = '';
+        _notesController.text = '';
+
+        setState(() {
+          _prescription = null;
+          _isDeleting = false;
+          _isEditing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error deleting prescription: ${e.toString()}';
+          _isDeleting = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         title: Text(
-          'Doctor Prescription',
+          _isEditing ? 'Edit Prescription' : 'New Prescription',
           style: TextStyle(
             color: AppColors.primaryColor,
             fontWeight: FontWeight.bold,
@@ -164,6 +233,15 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         centerTitle: false,
         backgroundColor: AppColors.backgroundColor,
         elevation: 0,
+        actions: _isEditing
+            ? [
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: AppColors.errorColor),
+                  onPressed: _isDeleting ? null : _deletePrescription,
+                  tooltip: 'Delete Prescription',
+                ),
+              ]
+            : null,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -483,11 +561,29 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Save Button
-                CustomButton(
-                  text: 'Save Prescription',
-                  onPressed: _savePrescription,
-                  isLoading: _isSaving,
+                // Action Buttons
+                Row(
+                  children: [
+                    if (_isEditing) ...[
+                      Expanded(
+                        child: CustomButton(
+                          text: 'Delete',
+                          onPressed: _deletePrescription,
+                          isLoading: _isDeleting,
+                          color: AppColors.errorColor,
+                          isOutlined: true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                    Expanded(
+                      child: CustomButton(
+                        text: _isEditing ? 'Update' : 'Save',
+                        onPressed: _savePrescription,
+                        isLoading: _isSaving,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
               ],

@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/weather_model.dart';
+import '../models/prescription_model.dart';
 import '../constants/app_colors.dart';
 
 class WeatherCard extends StatelessWidget {
   final WeatherModel weatherData;
   final bool showTime;
+  final PrescriptionModel? prescription;
 
   const WeatherCard({
     Key? key,
     required this.weatherData,
     this.showTime = true,
+    this.prescription,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Calculate safety checks if prescription is available
+    final safetyCheck = prescription?.isSafeWeather(weatherData.temperature,
+        weatherData.humidity, weatherData.pressure, weatherData.windSpeed);
+    final isOverallSafe = prescription?.isOverallSafe(weatherData.temperature,
+        weatherData.humidity, weatherData.pressure, weatherData.windSpeed);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -57,6 +66,59 @@ class WeatherCard extends StatelessWidget {
             ),
           ),
 
+          // Prescription safety status (if available)
+          if (prescription != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (isOverallSafe ?? true)
+                          ? AppColors.successColor.withOpacity(0.1)
+                          : AppColors.errorColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: (isOverallSafe ?? true)
+                            ? AppColors.successColor.withOpacity(0.5)
+                            : AppColors.errorColor.withOpacity(0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          (isOverallSafe ?? true)
+                              ? Icons.check_circle_outline
+                              : Icons.warning_amber_rounded,
+                          color: (isOverallSafe ?? true)
+                              ? AppColors.successColor
+                              : AppColors.errorColor,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          (isOverallSafe ?? true)
+                              ? 'Safe Conditions'
+                              : 'Unsafe Conditions',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: (isOverallSafe ?? true)
+                                ? AppColors.successColor
+                                : AppColors.errorColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Weather grid
           GridView.count(
             physics: const NeverScrollableScrollPhysics(),
@@ -72,26 +134,43 @@ class WeatherCard extends StatelessWidget {
                 '${weatherData.temperature.toStringAsFixed(1)}°C',
                 Icons.thermostat_outlined,
                 AppColors.primaryColor,
+                isSafe: safetyCheck?['temperature'],
+                safeRange: prescription != null
+                    ? '${prescription!.minTemperature.toStringAsFixed(1)}-${prescription!.maxTemperature.toStringAsFixed(1)}°C'
+                    : null,
               ),
               _buildWeatherTile(
                 'Humidity',
                 '${weatherData.humidity}%',
                 Icons.water_drop_outlined,
                 Colors.blue,
+                isSafe: safetyCheck?['humidity'],
+                safeRange: prescription != null
+                    ? '${prescription!.minHumidity}-${prescription!.maxHumidity}%'
+                    : null,
               ),
               _buildWeatherTile(
                 'Pressure',
                 '${weatherData.pressure} hPa',
                 Icons.speed_outlined,
                 Colors.orange,
+                isSafe: safetyCheck?['pressure'],
+                safeRange: prescription != null
+                    ? '${prescription!.minPressure}-${prescription!.maxPressure} hPa'
+                    : null,
               ),
               _buildWeatherTile(
                 'Wind Speed',
                 '${weatherData.windSpeed} m/s',
                 Icons.air_outlined,
                 Colors.teal,
+                isSafe: safetyCheck?['windSpeed'],
+                safeRange: prescription != null
+                    ? 'Max ${prescription!.maxWindSpeed} m/s'
+                    : null,
               ),
-              if (weatherData.uvIndex != null)
+              if (weatherData.uvIndex != null &&
+                  (prescription == null || safetyCheck?.length == 4))
                 _buildWeatherTile(
                   'UV Index',
                   weatherData.uvIndex!,
@@ -106,11 +185,21 @@ class WeatherCard extends StatelessWidget {
   }
 
   Widget _buildWeatherTile(
-      String label, String value, IconData icon, Color iconColor) {
+      String label, String value, IconData icon, Color iconColor,
+      {bool? isSafe, String? safeRange}) {
+    // If no prescription is available, isSafe will be null
+    final bool hasSafetyInfo = isSafe != null && safeRange != null;
+    final Color safetyColor =
+        (isSafe ?? true) ? AppColors.successColor : AppColors.errorColor;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(15),
+        border: hasSafetyInfo && !isSafe!
+            ? Border.all(
+                color: AppColors.errorColor.withOpacity(0.5), width: 1.5)
+            : null,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Row(
@@ -119,12 +208,15 @@ class WeatherCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: hasSafetyInfo && !isSafe!
+                  ? AppColors.errorColor.withOpacity(0.1)
+                  : iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
-              color: iconColor,
+              color:
+                  hasSafetyInfo && !isSafe ? AppColors.errorColor : iconColor,
               size: 18,
             ),
           ),
@@ -148,10 +240,21 @@ class WeatherCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primaryTextColor,
+                    color: hasSafetyInfo && !isSafe
+                        ? AppColors.errorColor
+                        : AppColors.primaryTextColor,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (hasSafetyInfo)
+                  Text(
+                    'Safe: $safeRange',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: safetyColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
               ],
             ),
           ),
