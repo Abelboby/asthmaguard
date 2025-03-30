@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/home/home_screen.dart';
+import 'screens/main_layout.dart';
 import 'constants/app_colors.dart';
 
 void main() async {
@@ -52,7 +52,7 @@ class AuthGate extends StatelessWidget {
         // If the snapshot has user data, then they're already signed in
         if (snapshot.connectionState == ConnectionState.active) {
           if (snapshot.hasData) {
-            return const HomeScreen();
+            return const MainLayout();
           }
 
           // User is not logged in
