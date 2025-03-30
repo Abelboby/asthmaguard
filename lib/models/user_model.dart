@@ -5,6 +5,7 @@ class UserModel {
   final String? location;
   final String? profileImage;
   final bool hasSmartMask;
+  final bool hasPrescription;
 
   UserModel({
     required this.id,
@@ -13,6 +14,7 @@ class UserModel {
     this.location,
     this.profileImage,
     this.hasSmartMask = false,
+    this.hasPrescription = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class UserModel {
       location: json['location'],
       profileImage: json['profileImage'],
       hasSmartMask: json['hasSmartMask'] ?? false,
+      hasPrescription: json['hasPrescription'] ?? false,
     );
   }
 
@@ -34,6 +37,7 @@ class UserModel {
       'location': location,
       'profileImage': profileImage,
       'hasSmartMask': hasSmartMask,
+      'hasPrescription': hasPrescription,
     };
   }
 
@@ -44,6 +48,7 @@ class UserModel {
     String? location,
     String? profileImage,
     bool? hasSmartMask,
+    bool? hasPrescription,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -52,6 +57,7 @@ class UserModel {
       location: location ?? this.location,
       profileImage: profileImage ?? this.profileImage,
       hasSmartMask: hasSmartMask ?? this.hasSmartMask,
+      hasPrescription: hasPrescription ?? this.hasPrescription,
     );
   }
 }

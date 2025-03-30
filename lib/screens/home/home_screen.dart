@@ -5,13 +5,16 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_constants.dart';
 import '../../models/user_model.dart';
 import '../../models/weather_model.dart';
+import '../../models/prescription_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 import '../../providers/weather_provider.dart';
 import '../../widgets/risk_indicator.dart';
 import '../../widgets/weather_card.dart';
 import '../../widgets/custom_button.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
+import '../prescription/prescription_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -23,9 +26,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   final _authService = AuthService();
+  final _databaseService = DatabaseService();
   bool _isLoading = true;
   UserModel? _user;
   String _errorMessage = '';
+  PrescriptionModel? _prescription;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -68,6 +73,11 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       _user = user;
+
+      // Load prescription if user has one
+      if (_user!.hasPrescription) {
+        _prescription = await _databaseService.getLatestPrescription(_user!.id);
+      }
 
       // Initialize the weather provider with user data
       if (mounted) {
@@ -490,6 +500,20 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     const SizedBox(height: 16),
                     WeatherCard(weatherData: weatherData, showTime: false),
+
+                    // Show safety status if user has prescription
+                    if (_user != null &&
+                        _user!.hasPrescription &&
+                        _prescription != null) ...[
+                      const SizedBox(height: 24),
+                      _buildSafetyCard(weatherData, _prescription!),
+                    ],
+
+                    // Show button to add prescription if user doesn't have one
+                    if (_user != null && !_user!.hasPrescription) ...[
+                      const SizedBox(height: 24),
+                      _buildAddPrescriptionCard(),
+                    ],
                   ],
 
                   const SizedBox(height: 24),
@@ -532,5 +556,258 @@ class _HomeScreenState extends State<HomeScreen>
     final period = time.hour >= 12 ? 'PM' : 'AM';
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute $period';
+  }
+
+  // Helper method to build safety card
+  Widget _buildSafetyCard(
+      WeatherModel weather, PrescriptionModel prescription) {
+    final safetyCheck = prescription.isSafeWeather(weather.temperature,
+        weather.humidity, weather.pressure, weather.windSpeed);
+
+    final isOverallSafe = prescription.isOverallSafe(weather.temperature,
+        weather.humidity, weather.pressure, weather.windSpeed);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Doctor\'s Prescription',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTextColor,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PrescriptionScreen(
+                        user: _user!,
+                        currentWeather: weather,
+                      ),
+                    ),
+                  );
+                },
+                child: Text(
+                  'View Details',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.linkTextColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isOverallSafe
+                      ? AppColors.successColor.withOpacity(0.1)
+                      : AppColors.errorColor.withOpacity(0.1),
+                ),
+                child: Center(
+                  child: Icon(
+                    isOverallSafe
+                        ? Icons.check_circle
+                        : Icons.warning_amber_rounded,
+                    color: isOverallSafe
+                        ? AppColors.successColor
+                        : AppColors.errorColor,
+                    size: 30,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isOverallSafe
+                          ? 'Safe Conditions'
+                          : 'Warning: Unsafe Conditions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isOverallSafe
+                            ? AppColors.successColor
+                            : AppColors.errorColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isOverallSafe
+                          ? 'Current weather conditions are within your doctor\'s prescribed safe ranges.'
+                          : 'Some weather parameters are outside your doctor\'s prescribed safe ranges.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (!isOverallSafe) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Unsafe Parameters:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.errorColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: safetyCheck.entries
+                  .where((entry) => !entry.value)
+                  .map((entry) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.errorColor.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          _getParameterName(entry.key),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.errorColor,
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getParameterName(String key) {
+    switch (key) {
+      case 'temperature':
+        return 'Temperature';
+      case 'humidity':
+        return 'Humidity';
+      case 'pressure':
+        return 'Pressure';
+      case 'windSpeed':
+        return 'Wind Speed';
+      default:
+        return key;
+    }
+  }
+
+  Widget _buildAddPrescriptionCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.medical_services_outlined,
+                  color: AppColors.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Add Doctor\'s Prescription',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryTextColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Your doctor can prescribe safe ranges for weather parameters based on your asthma condition. This helps the app provide personalized alerts.',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.secondaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          CustomButton(
+            text: 'Add Prescription',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PrescriptionScreen(
+                    user: _user!,
+                    currentWeather:
+                        Provider.of<WeatherProvider>(context, listen: false)
+                            .weatherData,
+                  ),
+                ),
+              ).then((_) => _loadUserData()); // Reload data when returning
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/weather_model.dart';
 import '../models/breath_data_model.dart';
 import '../models/user_model.dart';
+import '../models/prescription_model.dart';
 import '../constants/app_constants.dart';
 
 class DatabaseService {
@@ -130,6 +131,66 @@ class DatabaseService {
       return null;
     } catch (e) {
       throw Exception('Error getting latest breath data: $e');
+    }
+  }
+
+  // Save doctor prescription
+  Future<void> savePrescription(
+      String userId, PrescriptionModel prescription) async {
+    try {
+      // Save prescription
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .collection('prescriptions')
+          .doc('latest')
+          .set(prescription.toJson());
+
+      // Update user model to indicate they have a prescription
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .update({'hasPrescription': true});
+    } catch (e) {
+      throw Exception('Error saving prescription: $e');
+    }
+  }
+
+  // Get latest prescription
+  Future<PrescriptionModel?> getLatestPrescription(String userId) async {
+    try {
+      final doc = await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .collection('prescriptions')
+          .doc('latest')
+          .get();
+
+      if (doc.exists) {
+        return PrescriptionModel.fromJson(doc.data() as Map<String, dynamic>);
+      }
+
+      return null;
+    } catch (e) {
+      throw Exception('Error getting prescription: $e');
+    }
+  }
+
+  // Get prescription history
+  Future<List<PrescriptionModel>> getPrescriptionHistory(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .collection('prescriptions')
+          .orderBy('prescribedDate', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => PrescriptionModel.fromJson(doc.data()))
+          .toList();
+    } catch (e) {
+      throw Exception('Error getting prescription history: $e');
     }
   }
 }

@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/custom_button.dart';
 import '../auth/login_screen.dart';
+import '../prescription/prescription_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -335,6 +336,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Doctor Prescription Settings
+                _buildSettingsTile(
+                  icon: Icons.medical_services_outlined,
+                  label: 'Doctor Prescription',
+                  iconColor: Colors.purple,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrescriptionScreen(
+                          user: _user!,
+                          currentWeather:
+                              null, // We'll get this from provider in the prescription screen
+                        ),
+                      ),
+                    );
+                  },
+                ),
 
                 // Edit Profile Button
                 _buildSettingsTile(
