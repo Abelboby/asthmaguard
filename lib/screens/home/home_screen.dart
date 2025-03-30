@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen>
                     );
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(right: 16),
+                    margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
@@ -382,35 +382,10 @@ class _HomeScreenState extends State<HomeScreen>
 
                           // Risk assessment message
                           Text(
-                            'Here\'s your asthma risk assessment for today',
+                            'Pull down to refresh data anytime',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.secondaryTextColor,
-                            ),
-                          ),
-
-                          // Pull to refresh hint
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: _loadUserAndWeatherData,
-                              icon: Icon(
-                                Icons.refresh,
-                                size: 14,
-                                color: AppColors.primaryColor,
-                              ),
-                              label: Text(
-                                'Refresh',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.primaryColor,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size(10, 10),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
                             ),
                           ),
                         ],
