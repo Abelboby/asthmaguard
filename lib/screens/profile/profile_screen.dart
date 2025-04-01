@@ -371,33 +371,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
-                // Change Password Button
-                _buildSettingsTile(
-                  icon: Icons.lock_outline,
-                  label: 'Change Password',
-                  iconColor: Colors.amber,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Change Password feature coming soon!'),
-                      ),
-                    );
-                  },
-                ),
+                // // Change Password Button
+                // _buildSettingsTile(
+                //   icon: Icons.lock_outline,
+                //   label: 'Change Password',
+                //   iconColor: Colors.amber,
+                //   onTap: () {
+                //     ScaffoldMessenger.of(context).showSnackBar(
+                //       const SnackBar(
+                //         content: Text('Change Password feature coming soon!'),
+                //       ),
+                //     );
+                //   },
+                // ),
 
                 // Notifications Button
-                _buildSettingsTile(
-                  icon: Icons.notifications_outlined,
-                  label: 'Notifications',
-                  iconColor: Colors.deepPurple,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notifications feature coming soon!'),
-                      ),
-                    );
-                  },
-                ),
+                // _buildSettingsTile(
+                //   icon: Icons.notifications_outlined,
+                //   label: 'Notifications',
+                //   iconColor: Colors.deepPurple,
+                //   onTap: () {
+                //     ScaffoldMessenger.of(context).showSnackBar(
+                //       const SnackBar(
+                //         content: Text('Notifications feature coming soon!'),
+                //       ),
+                //     );
+                //   },
+                // ),
 
                 // Trigger Threshold Settings
                 _buildSettingsTile(
@@ -415,19 +415,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 // Privacy Button
-                _buildSettingsTile(
-                  icon: Icons.privacy_tip_outlined,
-                  label: 'Privacy & Security',
-                  iconColor: Colors.teal,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Privacy & Security feature coming soon!'),
-                      ),
-                    );
-                  },
-                ),
+                // _buildSettingsTile(
+                //   icon: Icons.privacy_tip_outlined,
+                //   label: 'Privacy & Security',
+                //   iconColor: Colors.teal,
+                //   onTap: () {
+                //     ScaffoldMessenger.of(context).showSnackBar(
+                //       const SnackBar(
+                //         content:
+                //             Text('Privacy & Security feature coming soon!'),
+                //       ),
+                //     );
+                //   },
+                // ),
               ],
             ),
           ),

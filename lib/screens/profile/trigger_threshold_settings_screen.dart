@@ -111,8 +111,8 @@ class _TriggerThresholdSettingsScreenState
         return;
       }
       
-      // Save settings using our service (handles SharedPreferences failures)
-      await _settingsService.saveDoubleValues({
+      // Save settings using our service (handles Firebase and SharedPreferences)
+      final saveResult = await _settingsService.saveDoubleValues({
         'high_temp_threshold': highTemp,
         'low_temp_threshold': lowTemp,
         'high_humidity_threshold': highHumidity,
@@ -127,11 +127,15 @@ class _TriggerThresholdSettingsScreenState
         lowHumidity: lowHumidity,
       );
       
-      // Show success message
+      // Show success message with sync status
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Trigger thresholds updated successfully.'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text(
+            saveResult 
+              ? 'Trigger thresholds saved and synced to cloud.' 
+              : 'Trigger thresholds saved locally. Cloud sync unavailable.',
+          ),
+          backgroundColor: saveResult ? Colors.green : Colors.orange,
         ),
       );
       
@@ -229,9 +233,20 @@ class _TriggerThresholdSettingsScreenState
                     _buildTriggerTable(),
                     const SizedBox(height: 24),
                     CustomButton(
-                      text: 'Save Thresholds',
+                      text: 'Save & Sync Thresholds',
                       onPressed: _saveThresholds,
                       isLoading: _isSaving,
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        'Settings will sync across all your devices',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.secondaryTextColor,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                     ),
                   ],
                 ),

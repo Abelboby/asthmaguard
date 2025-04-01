@@ -33,7 +33,7 @@ class SmartMaskProvider with ChangeNotifier {
   // Load trigger thresholds from settings service
   Future<void> _loadTriggerThresholds() async {
     try {
-      // Load threshold values if they exist
+      // Load threshold values if they exist (from Firebase first, then local storage)
       final highTemp = await _settingsService.getDouble('high_temp_threshold');
       final lowTemp = await _settingsService.getDouble('low_temp_threshold');
       final highHumidity = await _settingsService.getDouble('high_humidity_threshold');
@@ -46,10 +46,20 @@ class SmartMaskProvider with ChangeNotifier {
         highHumidity: highHumidity,
         lowHumidity: lowHumidity,
       );
+      
+      print('Loaded trigger thresholds from storage: high temp=${highTemp ?? "default"}, '
+           'low temp=${lowTemp ?? "default"}, high humidity=${highHumidity ?? "default"}, '
+           'low humidity=${lowHumidity ?? "default"}');
     } catch (e) {
       print('Error loading trigger thresholds: $e');
       // Continue with default values in SmartMaskDataModel
     }
+  }
+
+  // Method to refresh settings from cloud
+  Future<void> refreshSettings() async {
+    await _loadTriggerThresholds();
+    notifyListeners();
   }
 
   // Getters
