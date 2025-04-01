@@ -13,12 +13,19 @@ class SmartMaskScreen extends StatefulWidget {
   State<SmartMaskScreen> createState() => _SmartMaskScreenState();
 }
 
-class _SmartMaskScreenState extends State<SmartMaskScreen> {
+class _SmartMaskScreenState extends State<SmartMaskScreen>
+    with SingleTickerProviderStateMixin {
   bool _isConnected = false;
   bool _isConnecting = false;
   SmartMaskDataModel? _smartMaskData;
+  SmartMaskDataModel? _previousData;
   final ESP8266Service _esp8266Service = ESP8266Service();
   StreamSubscription<SmartMaskDataModel>? _dataSubscription;
+
+  // For animations
+  late AnimationController _animationController;
+  bool _showTemperatureHighlight = false;
+  bool _showHumidityHighlight = false;
 
   // For device online status checking
   bool _isDeviceOnline = true;
@@ -29,12 +36,29 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _showTemperatureHighlight = false;
+          _showHumidityHighlight = false;
+        });
+        _animationController.reset();
+      }
+    });
   }
 
   @override
   void dispose() {
     _dataSubscription?.cancel();
     _deviceStatusTimer?.cancel();
+    _animationController.dispose();
     _esp8266Service.dispose();
     super.dispose();
   }
@@ -51,6 +75,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
       if (data != null) {
         setState(() {
           _smartMaskData = data;
+          _previousData = data; // Initialize previous data
           _isConnected = true;
           _isConnecting = false;
           _isDeviceOnline = _isDataRecent(data.timestamp);
@@ -95,9 +120,24 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
     _dataSubscription = _esp8266Service.dataStream.listen((data) {
       if (mounted) {
         setState(() {
+          // Check if values have changed to trigger animations
+          if (_smartMaskData != null) {
+            _showTemperatureHighlight =
+                _smartMaskData!.temperature != data.temperature;
+            _showHumidityHighlight = _smartMaskData!.humidity != data.humidity;
+
+            // Store previous data
+            _previousData = _smartMaskData;
+          }
+
           _smartMaskData = data;
           _isDeviceOnline = true; // Device is online when we receive new data
         });
+
+        // Start animation if values changed
+        if (_showTemperatureHighlight || _showHumidityHighlight) {
+          _animationController.forward();
+        }
       }
     }, onError: (error) {
       print('Error in ESP8266 data stream: $error');
@@ -157,6 +197,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
     setState(() {
       _isConnected = false;
       _smartMaskData = null;
+      _previousData = null;
       _isDeviceOnline = false;
     });
   }
@@ -448,12 +489,20 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
                 '${_smartMaskData!.temperature.toStringAsFixed(1)}°C',
                 Icons.thermostat_outlined,
                 AppColors.primaryColor, // Teal blue
+                showHighlight: _showTemperatureHighlight,
+                previousValue: _previousData != null
+                    ? '${_previousData!.temperature.toStringAsFixed(1)}°C'
+                    : null,
               ),
               _buildBreathDataTile(
                 'Breath Humidity',
                 '${_smartMaskData!.humidity.toStringAsFixed(1)}%',
                 Icons.water_drop_outlined,
                 AppColors.primaryColor, // Teal blue
+                showHighlight: _showHumidityHighlight,
+                previousValue: _previousData != null
+                    ? '${_previousData!.humidity.toStringAsFixed(1)}%'
+                    : null,
               ),
               _buildBreathDataTile(
                 'Status',
@@ -472,12 +521,29 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
     String label,
     String value,
     IconData icon,
-    Color iconColor,
-  ) {
+    Color iconColor, {
+    bool showHighlight = false,
+    String? previousValue,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(15),
+        border: showHighlight
+            ? Border.all(
+                color: AppColors.primaryColor,
+                width: 2.0,
+              )
+            : null,
+        boxShadow: showHighlight
+            ? [
+                BoxShadow(
+                  color: AppColors.primaryColor.withOpacity(0.3),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                )
+              ]
+            : null,
       ),
       padding: const EdgeInsets.all(12), // Reduced padding from 15
       child: Row(
@@ -512,15 +578,45 @@ class _SmartMaskScreenState extends State<SmartMaskScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: iconColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                // Animated value change
+                showHighlight && previousValue != null
+                    ? Stack(
+                        children: [
+                          // Old value (fading out)
+                          Opacity(
+                            opacity: 1.0 - _animationController.value,
+                            child: Text(
+                              previousValue,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: iconColor.withOpacity(0.5),
+                              ),
+                            ),
+                          ),
+                          // New value (fading in)
+                          Opacity(
+                            opacity: _animationController.value,
+                            child: Text(
+                              value,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: iconColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: iconColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
               ],
             ),
           ),
