@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../models/medical_prescription_model.dart';
 import '../../models/user_model.dart';
 import '../../widgets/breath_parameter_chart.dart';
+import '../info_center/asthma_info_center_screen.dart';
 
 class SmartMaskScreen extends StatefulWidget {
   const SmartMaskScreen({Key? key}) : super(key: key);
@@ -201,6 +202,22 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
         backgroundColor: AppColors.backgroundColor,
         elevation: 0,
         actions: [
+          // Info center button
+          IconButton(
+            icon: Icon(
+              Icons.medical_information,
+              color: AppColors.primaryColor,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AsthmaInfoCenterScreen(),
+                ),
+              );
+            },
+            tooltip: 'Asthma Information Center',
+          ),
           IconButton(
             icon: Icon(
               Icons.info_outline,
@@ -450,6 +467,19 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                   ),
                   const SizedBox(height: 16),
                   _buildDoctorPrescriptionCard(),
+                  
+                  // Information Center Card
+                  const SizedBox(height: 24),
+                  Text(
+                    'Asthma Resources',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoCenterCard(),
                 ],
               ),
             );
@@ -953,6 +983,146 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
             isLoading: _isSavingPrescription,
           ),
         ],
+      ),
+    );
+  }
+
+  // Information Center Card
+  Widget _buildInfoCenterCard() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AsthmaInfoCenterScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+          border: Border.all(
+            color: AppColors.primaryColor.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.medical_information,
+                    color: AppColors.primaryColor,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Asthma Information Center',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Learn about symptoms, triggers, and management',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.secondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: AppColors.primaryColor,
+                  size: 16,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _buildInfoChip(
+                  icon: Icons.sick, 
+                  text: 'Symptoms', 
+                  color: Colors.red.shade400
+                ),
+                const SizedBox(width: 8),
+                _buildInfoChip(
+                  icon: Icons.warning_amber, 
+                  text: 'Triggers', 
+                  color: Colors.orange.shade400
+                ),
+                const SizedBox(width: 8),
+                _buildInfoChip(
+                  icon: Icons.health_and_safety,
+                  text: 'Precautions',
+                  color: Colors.green.shade400
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
