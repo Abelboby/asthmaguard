@@ -439,9 +439,9 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
 
                   const SizedBox(height: 24),
 
-                  // Recommendations - Now always visible regardless of connection status
+                  // Prescription section - renamed from Doctor's Prescription
                   Text(
-                    'Recommendations',
+                    'Prescription',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -449,7 +449,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildRecommendations(smartMaskProvider),
+                  _buildDoctorPrescriptionCard(),
                 ],
               ),
             );
@@ -685,171 +685,9 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
     return '$hour:$minute $period';
   }
 
-  // Building recommendations based on breath data risk status
-  Widget _buildRecommendations(SmartMaskProvider provider) {
-    // Default recommendations when not connected or no breath data
-    List<Map<String, dynamic>> recommendations = [
-      {
-        'icon': Icons.masks_outlined,
-        'title': 'Connect Smart Mask',
-        'description': 'Connect your mask to get personalized recommendations.',
-        'color': AppColors.primaryColor, // Teal blue
-      },
-      {
-        'icon': Icons.air_outlined,
-        'title': 'Check Air Quality',
-        'description': 'Be aware of your local air quality conditions.',
-        'color': AppColors.primaryColor, // Teal blue
-      },
-      {
-        'icon': Icons.health_and_safety_outlined,
-        'title': 'Monitor Symptoms',
-        'description': 'Keep track of any respiratory symptoms you experience.',
-        'color': AppColors.primaryColor, // Teal blue
-      },
-    ];
-
-    // If connected and has breath data, show personalized recommendations
-    if (provider.smartMaskData != null) {
-      final riskStatus =
-          provider.smartMaskData!.getFormattedTriggerLevel().toLowerCase();
-
-      if (riskStatus.contains('high')) {
-        recommendations = [
-          {
-            'icon': Icons.medical_services_outlined,
-            'title': 'Consult Doctor',
-            'description': 'Contact your healthcare provider immediately.',
-            'color': AppColors.errorColor, // Keep red for error
-          },
-          {
-            'icon': Icons.home_outlined,
-            'title': 'Stay Indoors',
-            'description': 'Minimize outdoor activities.',
-            'color': AppColors.primaryColor, // Teal blue
-          },
-          {
-            'icon': Icons.masks_outlined,
-            'title': 'Keep Mask On',
-            'description':
-                'Continue using your smart mask to monitor your condition.',
-            'color': AppColors.primaryColor, // Teal blue
-          },
-        ];
-      } else if (riskStatus.contains('medium')) {
-        recommendations = [
-          {
-            'icon': Icons.masks_outlined,
-            'title': 'Use Smart Mask',
-            'description':
-                'Continue monitoring your breath data with the smart mask.',
-            'color': AppColors.primaryColor, // Teal blue
-          },
-          {
-            'icon': Icons.air_outlined,
-            'title': 'Monitor Environment',
-            'description': 'Be aware of air quality in your surroundings.',
-            'color': AppColors.primaryColor, // Teal blue
-          },
-          {
-            'icon': Icons.medical_services_outlined,
-            'title': 'Track Symptoms',
-            'description': 'Record any symptoms you experience in a journal.',
-            'color': AppColors.primaryColor, // Teal blue
-          },
-        ];
-      } else {
-        recommendations = [
-          {
-            'icon': Icons.favorite_outline,
-            'title': 'Maintain Wellness',
-            'description': 'Continue your healthy routine with the smart mask.',
-            'color': AppColors.successColor, // Teal blue
-          },
-          {
-            'icon': Icons.water_drop_outlined,
-            'title': 'Stay Hydrated',
-            'description': 'Drink plenty of water throughout the day.',
-            'color': AppColors.primaryColor, // Teal blue
-          },
-          {
-            'icon': Icons.nightlight_outlined,
-            'title': 'Quality Sleep',
-            'description': 'Ensure you get adequate rest.',
-            'color': AppColors.primaryColor, // Teal blue
-          },
-        ];
-      }
-    }
-
-    return Column(
-      children: [
-        // First add the Doctor's Prescription Card
-        _buildDoctorPrescriptionCard(),
-
-        const SizedBox(height: 16),
-
-        // Then the regular recommendations
-        ...recommendations.map((rec) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              leading: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: (rec['color'] as Color).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  rec['icon'] as IconData,
-                  color: rec['color'] as Color,
-                  size: 24,
-                ),
-              ),
-              title: Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  rec['title'] as String,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              subtitle: Text(
-                rec['description'] as String,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.secondaryTextColor,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ],
-    );
-  }
-
   // Build doctor's prescription card
   Widget _buildDoctorPrescriptionCard() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -884,7 +722,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Doctor's Prescription",
+                      "Medical Prescription",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -961,7 +799,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      "Doctor's Prescription",
+                      "Medical Prescription",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -1051,7 +889,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Doctor's Prescription",
+                "Medical Prescription",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
