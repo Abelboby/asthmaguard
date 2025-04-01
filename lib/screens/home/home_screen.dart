@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../../constants/app_colors.dart';
 import '../../constants/app_constants.dart';
 import '../../models/user_model.dart';
@@ -14,7 +15,6 @@ import '../../widgets/custom_button.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
 import '../prescription/prescription_screen.dart';
-import '../travel/travel_planner_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -515,83 +515,6 @@ class _HomeScreenState extends State<HomeScreen>
                       prescription: _user != null && _user!.hasPrescription
                           ? _prescription
                           : null,
-                    ),
-
-                    // Add a travel planner button
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primaryColor.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.flight_takeoff,
-                                  color: AppColors.primaryColor,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Planning a Trip?',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryTextColor,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Check weather conditions and asthma risks at your travel destination before you go.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.secondaryTextColor,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          CustomButton(
-                            text: 'Travel Planner',
-                            onPressed: () {
-                              if (_user != null) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TravelPlannerScreen(
-                                      user: _user!,
-                                      prescription: _prescription,
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ],
-                      ),
                     ),
 
                     // Add a button to view prescription details if it exists
