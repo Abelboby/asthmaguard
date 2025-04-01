@@ -255,15 +255,20 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
-                            color: smartMaskProvider.isConnected
-                                ? AppColors.primaryColor.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.1),
+                            color: !smartMaskProvider.isConnected
+                                ? Colors.grey.withOpacity(0.1)
+                                : smartMaskProvider.isDeviceOnline
+                                    ? AppColors.successColor.withOpacity(0.1)
+                                    : AppColors.errorColor.withOpacity(0.1),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: smartMaskProvider.isConnected
-                                    ? AppColors.primaryColor.withOpacity(0.2)
-                                    : Colors.grey.withOpacity(0.2),
+                                color: !smartMaskProvider.isConnected
+                                    ? Colors.grey.withOpacity(0.2)
+                                    : smartMaskProvider.isDeviceOnline
+                                        ? AppColors.successColor
+                                            .withOpacity(0.2)
+                                        : AppColors.errorColor.withOpacity(0.2),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
                               ),
@@ -273,9 +278,11 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                             child: Icon(
                               Icons.masks,
                               size: 60,
-                              color: smartMaskProvider.isConnected
-                                  ? AppColors.primaryColor
-                                  : Colors.grey,
+                              color: !smartMaskProvider.isConnected
+                                  ? Colors.grey
+                                  : smartMaskProvider.isDeviceOnline
+                                      ? AppColors.successColor
+                                      : AppColors.errorColor,
                             ),
                           ),
                         ),
@@ -287,63 +294,38 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: smartMaskProvider.isConnected
-                                ? AppColors.successColor.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.1),
+                            color: !smartMaskProvider.isConnected
+                                ? Colors.grey.withOpacity(0.1)
+                                : smartMaskProvider.isDeviceOnline
+                                    ? AppColors.successColor.withOpacity(0.1)
+                                    : AppColors.errorColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: smartMaskProvider.isConnected
-                                  ? AppColors.successColor.withOpacity(0.3)
-                                  : Colors.grey.withOpacity(0.3),
+                              color: !smartMaskProvider.isConnected
+                                  ? Colors.grey.withOpacity(0.3)
+                                  : smartMaskProvider.isDeviceOnline
+                                      ? AppColors.successColor.withOpacity(0.3)
+                                      : AppColors.errorColor.withOpacity(0.3),
                               width: 1,
                             ),
                           ),
                           child: Text(
-                            smartMaskProvider.isConnected
-                                ? 'Connected to ESP8266'
-                                : 'Not Connected',
+                            !smartMaskProvider.isConnected
+                                ? 'Not Connected'
+                                : smartMaskProvider.isDeviceOnline
+                                    ? 'Connected - Online'
+                                    : 'Connected - Offline',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: smartMaskProvider.isConnected
-                                  ? AppColors.successColor
-                                  : Colors.grey,
+                              color: !smartMaskProvider.isConnected
+                                  ? Colors.grey
+                                  : smartMaskProvider.isDeviceOnline
+                                      ? AppColors.successColor
+                                      : AppColors.errorColor,
                             ),
                           ),
                         ),
-
-                        // Device Online Status indicator (if connected)
-                        if (smartMaskProvider.isConnected) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: smartMaskProvider.isDeviceOnline
-                                      ? AppColors.successColor
-                                      : AppColors.errorColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                smartMaskProvider.isDeviceOnline
-                                    ? 'Device Online'
-                                    : 'Device Offline',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: smartMaskProvider.isDeviceOnline
-                                      ? AppColors.successColor
-                                      : AppColors.errorColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
 
                         const SizedBox(height: 8),
 
