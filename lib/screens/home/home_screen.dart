@@ -302,20 +302,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      // Add floating action button for quick access to AI Chatbot
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AsthmaChatbotScreen(),
-            ),
-          );
-        },
-        backgroundColor: AppColors.primaryColor,
-        child: const Icon(Icons.chat_outlined),
-        tooltip: 'AI Asthma Assistant',
-      ),
+      // Remove floating action button for quick access to AI Chatbot
       body: _isLoading || isProviderLoading
           ? const Center(
               child: CircularProgressIndicator(),
