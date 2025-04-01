@@ -150,26 +150,6 @@ class _HomeScreenState extends State<HomeScreen>
                   Navigator.of(context).pop();
                   // Navigate to Smart Mask screen
                   _navigateToSmartMaskScreen();
-
-                  // Show snackbar prompting to connect the mask
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text(
-                        'Connect to your Smart Mask for real-time monitoring',
-                      ),
-                      duration: const Duration(seconds: 5),
-                      action: SnackBarAction(
-                        label: 'Connect',
-                        onPressed: () {
-                          _navigateToSmartMaskScreen();
-                        },
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  );
                 },
                 child: Text(
                   riskStatus == AppConstants.highRisk
@@ -186,26 +166,12 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Helper to navigate to Smart Mask screen
   void _navigateToSmartMaskScreen() {
-    // Store scaffold messenger for later use
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    // Navigate to the SmartMaskScreen directly
-    Navigator.push(
-      context,
+    // Navigate to MainLayout with Smart Mask tab (index 1) selected
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (context) => const SmartMaskScreen(),
-      ),
-    ).then((_) {
-      // Show snackbar after returning from Smart Mask screen
-      if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('Remember to monitor your breath data regularly'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    });
+          builder: (context) => const MainLayout(initialIndex: 1)),
+      (route) => false, // Remove all previous routes
+    );
   }
 
   Future<void> _loadUserData() async {
