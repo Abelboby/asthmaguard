@@ -139,17 +139,11 @@ class DatabaseService {
   Future<void> saveEnvironmentConditions(
       String userId, PrescriptionModel environmentData) async {
     try {
-      // Save to the new 'conditions' collection as requested
-      await _firestore
-          .collection('conditions')
-          .doc(userId)
-          .set(environmentData.toJson());
-
-      // Also save to user-specific collection for backward compatibility
+      // Save to the user-specific subcollection (the proper way)
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(userId)
-          .collection('environment_conditions')
+          .collection(AppConstants.environmentConditionsCollection)
           .doc('latest')
           .set(environmentData.toJson());
 
@@ -167,21 +161,11 @@ class DatabaseService {
   Future<PrescriptionModel?> getLatestEnvironmentConditions(
       String userId) async {
     try {
-      // First try to get from the new 'conditions' collection
-      final conditionsDoc = await _firestore
-          .collection('conditions')
-          .doc(userId)
-          .get();
-
-      if (conditionsDoc.exists) {
-        return PrescriptionModel.fromJson(conditionsDoc.data() as Map<String, dynamic>);
-      }
-
-      // If not found, try the old location
+      // Get from the proper user subcollection
       final doc = await _firestore
           .collection(AppConstants.usersCollection)
           .doc(userId)
-          .collection('environment_conditions')
+          .collection(AppConstants.environmentConditionsCollection)
           .doc('latest')
           .get();
 
@@ -282,16 +266,11 @@ class DatabaseService {
   // Delete environment conditions
   Future<void> deleteEnvironmentConditions(String userId) async {
     try {
-      // Delete from both collections
-      await _firestore
-          .collection('conditions')
-          .doc(userId)
-          .delete();
-          
+      // Delete from the proper subcollection
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(userId)
-          .collection('environment_conditions')
+          .collection(AppConstants.environmentConditionsCollection)
           .doc('latest')
           .delete();
 
@@ -299,12 +278,53 @@ class DatabaseService {
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(userId)
-          .update({
-            'hasEnvironmentConditions': false,
-            'hasPrescription': false
-          });
+          .update(
+              {'hasEnvironmentConditions': false, 'hasPrescription': false});
     } catch (e) {
       throw Exception('Error deleting environment conditions: $e');
+    }
+  }
+
+  // Migration function to move data from the old "conditions" collection to user subcollection
+  Future<bool> migrateEnvironmentConditions(String userId) async {
+    try {
+      // Check if there's data in the old "conditions" collection
+      final oldDoc =
+          await _firestore.collection('conditions').doc(userId).get();
+
+      if (oldDoc.exists) {
+        // Get the data from the old location
+        final data = oldDoc.data();
+        if (data != null) {
+          // Create a PrescriptionModel from the data
+          final prescription = PrescriptionModel.fromJson(data);
+
+          // Save to the correct location
+          await _firestore
+              .collection(AppConstants.usersCollection)
+              .doc(userId)
+              .collection(AppConstants.environmentConditionsCollection)
+              .doc('latest')
+              .set(prescription.toJson());
+
+          // Update user flags
+          await _firestore
+              .collection(AppConstants.usersCollection)
+              .doc(userId)
+              .update(
+                  {'hasEnvironmentConditions': true, 'hasPrescription': true});
+
+          // Delete the old data
+          await _firestore.collection('conditions').doc(userId).delete();
+
+          return true; // Migration successful
+        }
+      }
+
+      return false; // No migration needed
+    } catch (e) {
+      print('Error migrating environment conditions: $e');
+      return false; // Migration failed
     }
   }
 }

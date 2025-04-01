@@ -12,8 +12,10 @@ class AppConstants {
 
   // ACT Score Thresholds - Updated to reflect standard interpretation
   // Lower scores indicate higher risk (poorer control)
-  static const double lowRiskThreshold = 20.0;  // ACT score ≥ 20 is low risk (well controlled)
-  static const double mediumRiskThreshold = 16.0;  // ACT score 16-19 is medium risk (partially controlled)
+  static const double lowRiskThreshold =
+      20.0; // ACT score ≥ 20 is low risk (well controlled)
+  static const double mediumRiskThreshold =
+      16.0; // ACT score 16-19 is medium risk (partially controlled)
   // Below 16 is high risk (poorly controlled)
 
   // Firebase Collection Names
@@ -21,6 +23,8 @@ class AppConstants {
   static const String weatherDataCollection = 'weather_data';
   static const String breathDataCollection = 'breath_data';
   static const String prescriptionsCollection = 'prescriptions';
+  static const String environmentConditionsCollection =
+      'environment_conditions';
 
   // Shared Preferences Keys
   static const String userKey = 'user';

@@ -191,6 +191,13 @@ class _HomeScreenState extends State<HomeScreen>
 
       _user = user;
 
+      // Migrate environment conditions data if needed
+      bool migrated =
+          await _databaseService.migrateEnvironmentConditions(_user!.id);
+      if (migrated) {
+        print("Successfully migrated environment conditions data");
+      }
+
       // Load prescription if user has one (check both flags for compatibility)
       if (_user!.hasPrescription || _user!.hasEnvironmentConditions) {
         _prescription =
@@ -864,20 +871,6 @@ class _HomeScreenState extends State<HomeScreen>
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   IconButton(
-                    icon: Icon(
-                      hasEnvironmentConditions
-                          ? Icons.edit_outlined
-                          : Icons.add_circle_outline,
-                      color: AppColors.primaryColor,
-                      size: 18,
-                    ),
-                    onPressed: _showQuickSetupDialog,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    visualDensity: VisualDensity.compact,
-                    tooltip: hasEnvironmentConditions ? 'Update' : 'Configure',
-                  ),
-                  IconButton(
                     icon: const Icon(
                       Icons.chevron_right,
                       size: 18,
@@ -910,7 +903,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Show quick setup dialog for environment conditions
   void _showQuickSetupDialog() {
     if (_user == null) return;
 
@@ -936,220 +928,276 @@ class _HomeScreenState extends State<HomeScreen>
     final doctorNameController = TextEditingController(
         text: hasExistingConditions ? _prescription!.doctorName : 'Self');
 
-    bool isSaving = false;
+    // Use a local variable to track controller disposal
+    bool _controllersDisposed = false;
+
+    // Safe disposal function
+    void _disposeControllers() {
+      if (!_controllersDisposed) {
+        tempMinController.dispose();
+        tempMaxController.dispose();
+        humidityMinController.dispose();
+        humidityMaxController.dispose();
+        doctorNameController.dispose();
+        _controllersDisposed = true;
+      }
+    }
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.thermostat_outlined,
-                color: AppColors.primaryColor,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(hasExistingConditions
-                  ? 'Update Environment Conditions'
-                  : 'Quick Environment Setup'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Temperature Range
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: tempMinController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Min Temp (°C)',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: tempMaxController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Max Temp (°C)',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+      barrierDismissible: false, // Prevent dismiss by tapping outside
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            bool isSaving = false;
 
-                // Humidity Range
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: humidityMinController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Min Humidity (%)',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
+            return WillPopScope(
+              onWillPop: () async {
+                _disposeControllers();
+                return true;
+              },
+              child: AlertDialog(
+                title: Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.thermostat_outlined,
+                        color: AppColors.primaryColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          hasExistingConditions
+                              ? 'Update Environment'
+                              : 'Quick Setup',
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: humidityMaxController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Max Humidity (%)',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Set by name
-                TextField(
-                  controller: doctorNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Set By (Optional)',
-                    hintText: 'Your name or doctor\'s name',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ],
                   ),
                 ),
+                content: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 300),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Temperature range in vertical layout
+                        const Text('Temperature (°C)',
+                            style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextField(
+                              controller: tempMinController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'Minimum',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 12),
+                                isDense: true,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: tempMaxController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'Maximum',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 12),
+                                isDense: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
 
-                const SizedBox(height: 12),
-                Text(
-                  hasExistingConditions
-                      ? 'Updating will overwrite your current settings.'
-                      : 'Default pressure and wind values will be used. Use Advanced Setup for more options.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: AppColors.secondaryTextColor,
+                        // Humidity Range in vertical layout
+                        const Text('Humidity (%)',
+                            style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextField(
+                              controller: humidityMinController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Minimum',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 12),
+                                isDense: true,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: humidityMaxController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Maximum',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 12),
+                                isDense: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Set by name
+                        const Text('Created By',
+                            style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: doctorNameController,
+                          decoration: const InputDecoration(
+                            hintText: 'Your name or doctor\'s name',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
+                            isDense: true,
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+                        Text(
+                          hasExistingConditions
+                              ? 'Updating will overwrite your current settings.'
+                              : 'Default pressure and wind values will be used.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      try {
-                        // Validate inputs
-                        final minTemp = double.parse(tempMinController.text);
-                        final maxTemp = double.parse(tempMaxController.text);
-                        final minHumidity =
-                            int.parse(humidityMinController.text);
-                        final maxHumidity =
-                            int.parse(humidityMaxController.text);
-
-                        // Set default values for other parameters
-                        const minPressure = 990;
-                        const maxPressure = 1030;
-                        const maxWindSpeed = 5.0;
-
-                        // Show saving state
-                        setState(() {
-                          isSaving = true;
-                        });
-
-                        // Create prescription model
-                        final prescription = PrescriptionModel(
-                          minTemperature: minTemp,
-                          maxTemperature: maxTemp,
-                          minHumidity: minHumidity,
-                          maxHumidity: maxHumidity,
-                          minPressure: minPressure,
-                          maxPressure: maxPressure,
-                          maxWindSpeed: maxWindSpeed,
-                          doctorName: doctorNameController.text.isNotEmpty
-                              ? doctorNameController.text
-                              : 'Self',
-                          notes: 'Quick setup from home screen.',
-                          prescribedDate: DateTime.now(),
-                        );
-
-                        // Save to database
-                        await _databaseService.saveEnvironmentConditions(
-                            _user!.id, prescription);
-
-                        // Close dialog
-                        if (mounted) {
-                          Navigator.of(context).pop();
-
-                          // Show success message
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(hasExistingConditions
-                                    ? 'Environment conditions updated!'
-                                    : 'Environment conditions saved!')),
-                          );
-
-                          // Reload data
-                          _loadUserData();
-                        }
-                      } catch (e) {
-                        // Show error
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: ${e.toString()}')),
-                          );
-                          setState(() {
-                            isSaving = false;
-                          });
-                        }
-                      }
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      _disposeControllers();
+                      Navigator.of(dialogContext).pop();
                     },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                foregroundColor: Colors.white,
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            try {
+                              setState(() {
+                                isSaving = true;
+                              });
+
+                              // Validate inputs
+                              final minTemp =
+                                  double.parse(tempMinController.text);
+                              final maxTemp =
+                                  double.parse(tempMaxController.text);
+                              final minHumidity =
+                                  int.parse(humidityMinController.text);
+                              final maxHumidity =
+                                  int.parse(humidityMaxController.text);
+
+                              // Set default values for other parameters
+                              const minPressure = 990;
+                              const maxPressure = 1030;
+                              const maxWindSpeed = 5.0;
+
+                              // Create prescription model
+                              final prescription = PrescriptionModel(
+                                minTemperature: minTemp,
+                                maxTemperature: maxTemp,
+                                minHumidity: minHumidity,
+                                maxHumidity: maxHumidity,
+                                minPressure: minPressure,
+                                maxPressure: maxPressure,
+                                maxWindSpeed: maxWindSpeed,
+                                doctorName: doctorNameController.text.isNotEmpty
+                                    ? doctorNameController.text
+                                    : 'Self',
+                                notes: 'Quick setup from home screen.',
+                                prescribedDate: DateTime.now(),
+                              );
+
+                              // Save to database
+                              await _databaseService.saveEnvironmentConditions(
+                                  _user!.id, prescription);
+
+                              // Properly dispose controllers before closing dialog
+                              _disposeControllers();
+
+                              // Close dialog
+                              if (mounted) {
+                                Navigator.of(dialogContext).pop();
+
+                                // Show success message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text(hasExistingConditions
+                                          ? 'Environment conditions updated!'
+                                          : 'Environment conditions saved!')),
+                                );
+
+                                // Wait briefly for dialog to close before reloading data
+                                Future.delayed(
+                                    const Duration(milliseconds: 300), () {
+                                  if (mounted) {
+                                    _loadUserData();
+                                  }
+                                });
+                              }
+                            } catch (e) {
+                              // Show error
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Error: ${e.toString()}')),
+                                );
+                                setState(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ))
+                        : Text(hasExistingConditions ? 'Update' : 'Save'),
+                  ),
+                ],
               ),
-              child: isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ))
-                  : Text(hasExistingConditions ? 'Update' : 'Save'),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     ).then((_) {
-      // Dispose controllers
-      tempMinController.dispose();
-      tempMaxController.dispose();
-      humidityMinController.dispose();
-      humidityMaxController.dispose();
-      doctorNameController.dispose();
+      // Make sure controllers are disposed if not already
+      _disposeControllers();
     });
   }
 
