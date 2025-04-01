@@ -8,6 +8,7 @@ import '../../models/weather_model.dart';
 import '../../models/prescription_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
+import '../../services/weather_service.dart';
 import '../../providers/weather_provider.dart';
 import '../../widgets/risk_indicator.dart';
 import '../../widgets/weather_card.dart';
@@ -15,6 +16,8 @@ import '../../widgets/custom_button.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
 import '../prescription/prescription_screen.dart';
+import '../main_layout.dart';
+import '../smart_mask/smart_mask_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -57,6 +60,154 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  // Show risk-based warning for smart mask usage
+  void _showSmartMaskRecommendation(BuildContext context, String riskStatus) {
+    // Get the weather provider
+    final weatherProvider =
+        Provider.of<WeatherProvider>(context, listen: false);
+
+    // Check if we should show the popup using the provider's method
+    if (!weatherProvider.shouldShowRiskPopup(riskStatus)) {
+      return;
+    }
+
+    // Mark that we've shown the popup for this session in the provider
+    weatherProvider.setRiskPopupShown(true);
+
+    // Delay showing the popup to allow the UI to render first
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.masks,
+                  color: riskStatus == AppConstants.highRisk
+                      ? AppColors.errorColor
+                      : AppColors.warningColor,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  riskStatus == AppConstants.highRisk
+                      ? 'High Risk Detected'
+                      : 'Medium Risk Detected',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: riskStatus == AppConstants.highRisk
+                        ? AppColors.errorColor
+                        : AppColors.warningColor,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  riskStatus == AppConstants.highRisk
+                      ? 'Current weather conditions pose a high risk to your respiratory health.'
+                      : 'Current weather conditions may affect your respiratory health.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  riskStatus == AppConstants.highRisk
+                      ? 'It is strongly recommended to use your Smart Mask for real-time monitoring of your breath data.'
+                      : 'Using your Smart Mask would be beneficial to monitor your breath parameters.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Later'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Navigate to Smart Mask screen
+                  _navigateToSmartMaskScreen();
+
+                  // Show snackbar prompting to connect the mask
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Connect to your Smart Mask for real-time monitoring',
+                      ),
+                      duration: const Duration(seconds: 5),
+                      action: SnackBarAction(
+                        label: 'Connect',
+                        onPressed: () {
+                          _navigateToSmartMaskScreen();
+                        },
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                },
+                child: Text(
+                  riskStatus == AppConstants.highRisk
+                      ? 'Connect Now'
+                      : 'Connect Mask',
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  // Helper to navigate to Smart Mask screen
+  void _navigateToSmartMaskScreen() {
+    // Store scaffold messenger for later use
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // Navigate to the SmartMaskScreen directly
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SmartMaskScreen(),
+      ),
+    ).then((_) {
+      // Show snackbar after returning from Smart Mask screen
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Remember to monitor your breath data regularly'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    });
+  }
+
   Future<void> _loadUserData() async {
     setState(() {
       _isLoading = true;
@@ -94,6 +245,12 @@ class _HomeScreenState extends State<HomeScreen>
           }
         }
 
+        // Check risk level and show smart mask recommendation if needed
+        if (weatherProvider.hasData) {
+          _showSmartMaskRecommendation(
+              context, weatherProvider.weatherData!.riskStatus);
+        }
+
         setState(() {
           _isLoading = false;
         });
@@ -115,7 +272,33 @@ class _HomeScreenState extends State<HomeScreen>
       if (_user != null) {
         final weatherProvider =
             Provider.of<WeatherProvider>(context, listen: false);
+
+        // Store the previous risk status before refresh
+        String? previousRiskStatus = weatherProvider.hasData
+            ? weatherProvider.weatherData?.riskStatus
+            : null;
+
+        // Refresh weather data
         await weatherProvider.refreshWeatherData(_user!);
+
+        // If risk level changed to medium or high AND previous risk was different (or low),
+        // reset the popup shown flag to allow showing it again
+        if (weatherProvider.hasData &&
+            previousRiskStatus != null &&
+            previousRiskStatus != weatherProvider.weatherData?.riskStatus &&
+            (weatherProvider.weatherData?.riskStatus ==
+                    AppConstants.mediumRisk ||
+                weatherProvider.weatherData?.riskStatus ==
+                    AppConstants.highRisk)) {
+          // Reset the flag in the provider
+          weatherProvider.setRiskPopupShown(false);
+
+          // Show recommendation with new risk status
+          if (mounted && weatherProvider.weatherData != null) {
+            _showSmartMaskRecommendation(
+                context, weatherProvider.weatherData!.riskStatus);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {

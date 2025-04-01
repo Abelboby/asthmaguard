@@ -12,6 +12,9 @@ class WeatherProvider with ChangeNotifier {
   bool _isLoading = false;
   String _errorMessage = '';
   bool _hasInitialLoad = false;
+  
+  // Flag to track if risk notification popup has been shown
+  bool _hasShownRiskPopup = false;
 
   // Getters
   WeatherModel? get weatherData => _weatherData;
@@ -19,6 +22,28 @@ class WeatherProvider with ChangeNotifier {
   String get errorMessage => _errorMessage;
   bool get hasData => _weatherData != null;
   bool get hasInitialLoad => _hasInitialLoad;
+  bool get hasShownRiskPopup => _hasShownRiskPopup;
+  
+  // Setter for risk popup flag
+  void setRiskPopupShown(bool value) {
+    _hasShownRiskPopup = value;
+    notifyListeners();
+  }
+  
+  // Method to check if popup should be shown based on risk level
+  bool shouldShowRiskPopup(String riskStatus) {
+    if (_hasShownRiskPopup) {
+      return false; // Already shown this session
+    }
+    
+    // Only show for medium and high risk levels
+    if (riskStatus == 'Medium risk' || 
+        riskStatus == 'High risk - Consult a doctor immediately') {
+      return true;
+    }
+    
+    return false;
+  }
 
   // Initialize with data from Firebase if available
   Future<void> initialize(UserModel user) async {
