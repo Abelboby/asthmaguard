@@ -191,8 +191,8 @@ class _HomeScreenState extends State<HomeScreen>
 
       _user = user;
 
-      // Load prescription if user has one
-      if (_user!.hasPrescription) {
+      // Load prescription if user has one (check both flags for compatibility)
+      if (_user!.hasPrescription || _user!.hasEnvironmentConditions) {
         _prescription =
             await _databaseService.getLatestEnvironmentConditions(_user!.id);
       }
@@ -662,14 +662,17 @@ class _HomeScreenState extends State<HomeScreen>
                     WeatherCard(
                       weatherData: weatherData,
                       showTime: false,
-                      prescription: _user != null && _user!.hasPrescription
+                      prescription: _user != null &&
+                              (_user!.hasPrescription ||
+                                  _user!.hasEnvironmentConditions)
                           ? _prescription
                           : null,
                     ),
 
                     // Add a button to view prescription details if it exists
                     if (_user != null &&
-                        _user!.hasPrescription &&
+                        (_user!.hasPrescription ||
+                            _user!.hasEnvironmentConditions) &&
                         _prescription != null) ...[
                       const SizedBox(height: 16),
                       Align(
@@ -694,12 +697,45 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                     ],
+                  ],
 
-                    // Show button to add prescription if user doesn't have one
-                    if (_user != null && !_user!.hasPrescription) ...[
-                      const SizedBox(height: 24),
-                      _buildAddPrescriptionCard(),
-                    ],
+                  // Always show Environment Conditions card
+                  const SizedBox(height: 24),
+                  if (_user != null) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Environment Conditions',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryTextColor,
+                          ),
+                        ),
+                        if (_user!.hasPrescription ||
+                            _user!.hasEnvironmentConditions)
+                          Text(
+                            'Status: Configured',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.successColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        else
+                          Text(
+                            'Status: Not configured',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.secondaryTextColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAddPrescriptionCard(),
                   ],
 
                   const SizedBox(height: 24),
@@ -745,6 +781,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildAddPrescriptionCard() {
+    bool hasEnvironmentConditions = _user != null &&
+        (_user!.hasPrescription || _user!.hasEnvironmentConditions);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -768,56 +807,337 @@ class _HomeScreenState extends State<HomeScreen>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withOpacity(0.1),
+                  color: hasEnvironmentConditions
+                      ? AppColors.successColor.withOpacity(0.1)
+                      : AppColors.primaryColor.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.medical_services_outlined,
-                  color: AppColors.primaryColor,
+                  color: hasEnvironmentConditions
+                      ? AppColors.successColor
+                      : AppColors.primaryColor,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Add Doctor\'s Prescription',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryTextColor,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasEnvironmentConditions
+                          ? 'Your Environment Conditions'
+                          : 'Set Environment Conditions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryTextColor,
+                      ),
+                    ),
+                    if (hasEnvironmentConditions && _prescription != null)
+                      Text(
+                        'Temperature: ${_prescription!.minTemperature}°C - ${_prescription!.maxTemperature}°C, Humidity: ${_prescription!.minHumidity}% - ${_prescription!.maxHumidity}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.secondaryTextColor,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
-            'Your doctor can prescribe safe ranges for weather parameters based on your asthma condition. This helps the app provide personalized alerts.',
+            hasEnvironmentConditions
+                ? 'These settings help determine if current weather conditions are safe for your asthma.'
+                : 'Set safe ranges for weather parameters based on your asthma condition. This helps the app provide personalized alerts.',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.secondaryTextColor,
             ),
           ),
           const SizedBox(height: 16),
-          CustomButton(
-            text: 'Add Prescription',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PrescriptionScreen(
-                    user: _user!,
-                    currentWeather:
-                        Provider.of<WeatherProvider>(context, listen: false)
-                            .weatherData,
-                  ),
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  text: hasEnvironmentConditions ? 'Update' : 'Quick Setup',
+                  onPressed: _showQuickSetupDialog,
+                  isOutlined: true,
                 ),
-              ).then((_) => _loadUserData()); // Reload data when returning
-            },
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CustomButton(
+                  text: hasEnvironmentConditions
+                      ? 'View Details'
+                      : 'Advanced Setup',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrescriptionScreen(
+                          user: _user!,
+                          currentWeather: Provider.of<WeatherProvider>(context,
+                                  listen: false)
+                              .weatherData,
+                        ),
+                      ),
+                    ).then(
+                        (_) => _loadUserData()); // Reload data when returning
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  // Show quick setup dialog for environment conditions
+  void _showQuickSetupDialog() {
+    if (_user == null) return;
+
+    bool hasExistingConditions = _prescription != null;
+
+    // Controllers for the quick setup
+    final tempMinController = TextEditingController(
+        text: hasExistingConditions
+            ? _prescription!.minTemperature.toString()
+            : '15.0');
+    final tempMaxController = TextEditingController(
+        text: hasExistingConditions
+            ? _prescription!.maxTemperature.toString()
+            : '30.0');
+    final humidityMinController = TextEditingController(
+        text: hasExistingConditions
+            ? _prescription!.minHumidity.toString()
+            : '30');
+    final humidityMaxController = TextEditingController(
+        text: hasExistingConditions
+            ? _prescription!.maxHumidity.toString()
+            : '70');
+    final doctorNameController = TextEditingController(
+        text: hasExistingConditions ? _prescription!.doctorName : 'Self');
+
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.thermostat_outlined,
+                color: AppColors.primaryColor,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(hasExistingConditions
+                  ? 'Update Environment Conditions'
+                  : 'Quick Environment Setup'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Temperature Range
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: tempMinController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Min Temp (°C)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: tempMaxController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Max Temp (°C)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Humidity Range
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: humidityMinController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Min Humidity (%)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: humidityMaxController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Humidity (%)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Set by name
+                TextField(
+                  controller: doctorNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Set By (Optional)',
+                    hintText: 'Your name or doctor\'s name',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+                Text(
+                  hasExistingConditions
+                      ? 'Updating will overwrite your current settings.'
+                      : 'Default pressure and wind values will be used. Use Advanced Setup for more options.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      try {
+                        // Validate inputs
+                        final minTemp = double.parse(tempMinController.text);
+                        final maxTemp = double.parse(tempMaxController.text);
+                        final minHumidity =
+                            int.parse(humidityMinController.text);
+                        final maxHumidity =
+                            int.parse(humidityMaxController.text);
+
+                        // Set default values for other parameters
+                        const minPressure = 990;
+                        const maxPressure = 1030;
+                        const maxWindSpeed = 5.0;
+
+                        // Show saving state
+                        setState(() {
+                          isSaving = true;
+                        });
+
+                        // Create prescription model
+                        final prescription = PrescriptionModel(
+                          minTemperature: minTemp,
+                          maxTemperature: maxTemp,
+                          minHumidity: minHumidity,
+                          maxHumidity: maxHumidity,
+                          minPressure: minPressure,
+                          maxPressure: maxPressure,
+                          maxWindSpeed: maxWindSpeed,
+                          doctorName: doctorNameController.text.isNotEmpty
+                              ? doctorNameController.text
+                              : 'Self',
+                          notes: 'Quick setup from home screen.',
+                          prescribedDate: DateTime.now(),
+                        );
+
+                        // Save to database
+                        await _databaseService.saveEnvironmentConditions(
+                            _user!.id, prescription);
+
+                        // Close dialog
+                        if (mounted) {
+                          Navigator.of(context).pop();
+
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(hasExistingConditions
+                                    ? 'Environment conditions updated!'
+                                    : 'Environment conditions saved!')),
+                          );
+
+                          // Reload data
+                          _loadUserData();
+                        }
+                      } catch (e) {
+                        // Show error
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: ${e.toString()}')),
+                          );
+                          setState(() {
+                            isSaving = false;
+                          });
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ))
+                  : Text(hasExistingConditions ? 'Update' : 'Save'),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) {
+      // Dispose controllers
+      tempMinController.dispose();
+      tempMaxController.dispose();
+      humidityMinController.dispose();
+      humidityMaxController.dispose();
+      doctorNameController.dispose();
+    });
   }
 
   void _showActScoreInfo(BuildContext context) {
