@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
-import '../../models/smart_mask_data_model.dart';
 import '../../providers/smart_mask_provider.dart';
 
 class SmartMaskScreen extends StatefulWidget {
