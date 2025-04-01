@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/custom_text_field.dart';
 import '../../providers/smart_mask_provider.dart';
+import '../../services/database_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/medical_prescription_model.dart';
+import '../../models/user_model.dart';
 
 class SmartMaskScreen extends StatefulWidget {
   const SmartMaskScreen({Key? key}) : super(key: key);
@@ -15,6 +20,21 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
     with SingleTickerProviderStateMixin {
   // Animation controller for the highlight animations
   late AnimationController _animationController;
+  final DatabaseService _databaseService = DatabaseService();
+  final AuthService _authService = AuthService();
+  UserModel? _user;
+  MedicalPrescriptionModel? _prescription;
+  bool _isLoadingUser = false;
+  bool _isLoadingPrescription = false;
+  bool _isSavingPrescription = false;
+  bool _showPrescriptionForm = false;
+
+  // Controllers for the prescription form
+  final _temperatureController = TextEditingController();
+  final _humidityController = TextEditingController();
+  final _inhalerMedicineController = TextEditingController();
+  final _doctorNameController = TextEditingController();
+  final _additionalNotesController = TextEditingController();
 
   @override
   void initState() {
@@ -34,12 +54,133 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
         _animationController.reset();
       }
     });
+
+    // Load user data and prescription
+    _loadUserData();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _temperatureController.dispose();
+    _humidityController.dispose();
+    _inhalerMedicineController.dispose();
+    _doctorNameController.dispose();
+    _additionalNotesController.dispose();
     super.dispose();
+  }
+
+  // Load user data and prescription
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoadingUser = true;
+    });
+
+    try {
+      final user = await _authService.getUserModel();
+      if (user != null) {
+        _user = user;
+
+        // Load prescription if user has one
+        if (_user!.hasPrescription) {
+          setState(() {
+            _isLoadingPrescription = true;
+          });
+
+          try {
+            _prescription =
+                await _databaseService.getLatestMedicalPrescription(_user!.id);
+
+            // Populate the form if prescription exists
+            if (_prescription != null) {
+              _temperatureController.text =
+                  _prescription!.idealTemperature.toString();
+              _humidityController.text =
+                  _prescription!.idealHumidity.toString();
+              _inhalerMedicineController.text = _prescription!.inhalerMedicine;
+              _doctorNameController.text = _prescription!.doctorName;
+              _additionalNotesController.text = _prescription!.additionalNotes;
+            }
+          } catch (e) {
+            print('Error loading prescription: $e');
+          } finally {
+            if (mounted) {
+              setState(() {
+                _isLoadingPrescription = false;
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingUser = false;
+        });
+      }
+    }
+  }
+
+  // Save prescription
+  Future<void> _savePrescription() async {
+    if (_user == null) return;
+
+    // Validate inputs
+    if (_temperatureController.text.isEmpty ||
+        _humidityController.text.isEmpty ||
+        _inhalerMedicineController.text.isEmpty ||
+        _doctorNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSavingPrescription = true;
+    });
+
+    try {
+      // Parse values
+      final temperature = double.parse(_temperatureController.text);
+      final humidity = double.parse(_humidityController.text);
+
+      // Create prescription model
+      final prescription = MedicalPrescriptionModel(
+        idealTemperature: temperature,
+        idealHumidity: humidity,
+        inhalerMedicine: _inhalerMedicineController.text,
+        doctorName: _doctorNameController.text,
+        additionalNotes: _additionalNotesController.text,
+        prescribedDate: DateTime.now(),
+      );
+
+      // Save to Firebase
+      await _databaseService.saveMedicalPrescription(_user!.id, prescription);
+
+      // Update local state
+      setState(() {
+        _prescription = prescription;
+        _showPrescriptionForm = false;
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Prescription saved successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving prescription: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingPrescription = false;
+        });
+      }
+    }
   }
 
   @override
@@ -603,58 +744,339 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
     }
 
     return Column(
-      children: recommendations.map((rec) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
+      children: [
+        // First add the Doctor's Prescription Card
+        _buildDoctorPrescriptionCard(),
+
+        const SizedBox(height: 16),
+
+        // Then the regular recommendations
+        ...recommendations.map((rec) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: (rec['color'] as Color).withOpacity(0.1),
-                shape: BoxShape.circle,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
               ),
-              child: Icon(
-                rec['icon'] as IconData,
-                color: rec['color'] as Color,
-                size: 24,
+              leading: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: (rec['color'] as Color).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  rec['icon'] as IconData,
+                  color: rec['color'] as Color,
+                  size: 24,
+                ),
               ),
-            ),
-            title: Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                rec['title'] as String,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              title: Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  rec['title'] as String,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              subtitle: Text(
+                rec['description'] as String,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.secondaryTextColor,
                 ),
               ),
             ),
-            subtitle: Text(
-              rec['description'] as String,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.secondaryTextColor,
-              ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  // Build doctor's prescription card
+  Widget _buildDoctorPrescriptionCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: _isLoadingUser || _isLoadingPrescription
+          ? const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : _showPrescriptionForm
+              ? _buildPrescriptionForm()
+              : _buildPrescriptionPreview(),
+    );
+  }
+
+  // Build the prescription preview or "add new" button
+  Widget _buildPrescriptionPreview() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: _prescription != null
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Doctor's Prescription",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryTextColor,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.edit,
+                        color: AppColors.primaryColor,
+                        size: 20,
+                      ),
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        setState(() {
+                          _showPrescriptionForm = true;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildPrescriptionDetailItem(
+                  'Ideal Temperature',
+                  '${_prescription!.idealTemperature}°C',
+                  Icons.thermostat_outlined,
+                ),
+                _buildPrescriptionDetailItem(
+                  'Ideal Humidity',
+                  '${_prescription!.idealHumidity}%',
+                  Icons.water_drop_outlined,
+                ),
+                _buildPrescriptionDetailItem(
+                  'Inhaler Medicine',
+                  _prescription!.inhalerMedicine,
+                  Icons.medication_outlined,
+                ),
+                _buildPrescriptionDetailItem(
+                  'Doctor',
+                  _prescription!.doctorName,
+                  Icons.person_outlined,
+                ),
+                if (_prescription!.additionalNotes.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Additional Notes:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _prescription!.additionalNotes,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.secondaryTextColor,
+                    ),
+                  ),
+                ],
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.medical_services_outlined,
+                      color: AppColors.primaryColor,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      "Doctor's Prescription",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Add your doctor's prescription details to get personalized health recommendations.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.secondaryTextColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                CustomButton(
+                  text: 'Add Prescription',
+                  onPressed: () {
+                    setState(() {
+                      _showPrescriptionForm = true;
+                    });
+                  },
+                ),
+              ],
+            ),
+    );
+  }
+
+  // Build a single prescription detail item
+  Widget _buildPrescriptionDetailItem(
+      String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.primaryColor,
+              size: 16,
             ),
           ),
-        );
-      }).toList(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.secondaryTextColor,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build the prescription form
+  Widget _buildPrescriptionForm() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Doctor's Prescription",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTextColor,
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.close,
+                  color: AppColors.secondaryTextColor,
+                  size: 20,
+                ),
+                constraints: const BoxConstraints(),
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  setState(() {
+                    _showPrescriptionForm = false;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          CustomTextField(
+            label: 'Ideal Temperature (°C)',
+            hintText: 'e.g. 25',
+            controller: _temperatureController,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          CustomTextField(
+            label: 'Ideal Humidity (%)',
+            hintText: 'e.g. 50',
+            controller: _humidityController,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          CustomTextField(
+            label: 'Inhaler Medicine',
+            hintText: 'e.g. Salbutamol',
+            controller: _inhalerMedicineController,
+          ),
+          const SizedBox(height: 12),
+          CustomTextField(
+            label: "Doctor's Name",
+            hintText: 'e.g. Dr. Smith',
+            controller: _doctorNameController,
+          ),
+          const SizedBox(height: 12),
+          CustomTextField(
+            label: 'Additional Notes',
+            hintText: 'Enter any additional notes or instructions',
+            controller: _additionalNotesController,
+            minLines: 3,
+            maxLines: 5,
+          ),
+          const SizedBox(height: 20),
+          CustomButton(
+            text: 'Save Prescription',
+            onPressed: _savePrescription,
+            isLoading: _isSavingPrescription,
+          ),
+        ],
+      ),
     );
   }
 }

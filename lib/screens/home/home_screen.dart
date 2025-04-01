@@ -193,7 +193,8 @@ class _HomeScreenState extends State<HomeScreen>
 
       // Load prescription if user has one
       if (_user!.hasPrescription) {
-        _prescription = await _databaseService.getLatestPrescription(_user!.id);
+        _prescription =
+            await _databaseService.getLatestEnvironmentConditions(_user!.id);
       }
 
       // Initialize the weather provider with user data

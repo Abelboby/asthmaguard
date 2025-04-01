@@ -6,6 +6,7 @@ class UserModel {
   final String? profileImage;
   final bool hasSmartMask;
   final bool hasPrescription;
+  final bool hasEnvironmentConditions;
 
   UserModel({
     required this.id,
@@ -15,6 +16,7 @@ class UserModel {
     this.profileImage,
     this.hasSmartMask = false,
     this.hasPrescription = false,
+    this.hasEnvironmentConditions = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class UserModel {
       profileImage: json['profileImage'],
       hasSmartMask: json['hasSmartMask'] ?? false,
       hasPrescription: json['hasPrescription'] ?? false,
+      hasEnvironmentConditions: json['hasEnvironmentConditions'] ?? false,
     );
   }
 
@@ -38,6 +41,7 @@ class UserModel {
       'profileImage': profileImage,
       'hasSmartMask': hasSmartMask,
       'hasPrescription': hasPrescription,
+      'hasEnvironmentConditions': hasEnvironmentConditions,
     };
   }
 
@@ -49,6 +53,7 @@ class UserModel {
     String? profileImage,
     bool? hasSmartMask,
     bool? hasPrescription,
+    bool? hasEnvironmentConditions,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -58,6 +63,8 @@ class UserModel {
       profileImage: profileImage ?? this.profileImage,
       hasSmartMask: hasSmartMask ?? this.hasSmartMask,
       hasPrescription: hasPrescription ?? this.hasPrescription,
+      hasEnvironmentConditions:
+          hasEnvironmentConditions ?? this.hasEnvironmentConditions,
     );
   }
 }

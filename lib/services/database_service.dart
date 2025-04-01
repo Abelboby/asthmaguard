@@ -3,6 +3,7 @@ import '../models/weather_model.dart';
 import '../models/breath_data_model.dart';
 import '../models/user_model.dart';
 import '../models/prescription_model.dart';
+import '../models/medical_prescription_model.dart';
 import '../constants/app_constants.dart';
 
 class DatabaseService {
@@ -134,9 +135,51 @@ class DatabaseService {
     }
   }
 
-  // Save doctor prescription
-  Future<void> savePrescription(
-      String userId, PrescriptionModel prescription) async {
+  // Save environment conditions (previously prescription)
+  Future<void> saveEnvironmentConditions(
+      String userId, PrescriptionModel environmentData) async {
+    try {
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .collection('environment_conditions')
+          .doc('latest')
+          .set(environmentData.toJson());
+
+      // Update user model to indicate they have environment conditions set
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .update({'hasEnvironmentConditions': true});
+    } catch (e) {
+      throw Exception('Error saving environment conditions: $e');
+    }
+  }
+
+  // Get latest environment conditions
+  Future<PrescriptionModel?> getLatestEnvironmentConditions(
+      String userId) async {
+    try {
+      final doc = await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .collection('environment_conditions')
+          .doc('latest')
+          .get();
+
+      if (doc.exists) {
+        return PrescriptionModel.fromJson(doc.data() as Map<String, dynamic>);
+      }
+
+      return null;
+    } catch (e) {
+      throw Exception('Error getting environment conditions: $e');
+    }
+  }
+
+  // Save medical prescription
+  Future<void> saveMedicalPrescription(
+      String userId, MedicalPrescriptionModel prescription) async {
     try {
       // Save prescription
       await _firestore
@@ -152,12 +195,13 @@ class DatabaseService {
           .doc(userId)
           .update({'hasPrescription': true});
     } catch (e) {
-      throw Exception('Error saving prescription: $e');
+      throw Exception('Error saving medical prescription: $e');
     }
   }
 
-  // Get latest prescription
-  Future<PrescriptionModel?> getLatestPrescription(String userId) async {
+  // Get latest medical prescription
+  Future<MedicalPrescriptionModel?> getLatestMedicalPrescription(
+      String userId) async {
     try {
       final doc = await _firestore
           .collection(AppConstants.usersCollection)
@@ -167,17 +211,19 @@ class DatabaseService {
           .get();
 
       if (doc.exists) {
-        return PrescriptionModel.fromJson(doc.data() as Map<String, dynamic>);
+        return MedicalPrescriptionModel.fromJson(
+            doc.data() as Map<String, dynamic>);
       }
 
       return null;
     } catch (e) {
-      throw Exception('Error getting prescription: $e');
+      throw Exception('Error getting medical prescription: $e');
     }
   }
 
-  // Get prescription history
-  Future<List<PrescriptionModel>> getPrescriptionHistory(String userId) async {
+  // Get medical prescription history
+  Future<List<MedicalPrescriptionModel>> getMedicalPrescriptionHistory(
+      String userId) async {
     try {
       final snapshot = await _firestore
           .collection(AppConstants.usersCollection)
@@ -187,15 +233,15 @@ class DatabaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => PrescriptionModel.fromJson(doc.data()))
+          .map((doc) => MedicalPrescriptionModel.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      throw Exception('Error getting prescription history: $e');
+      throw Exception('Error getting medical prescription history: $e');
     }
   }
 
-  // Delete doctor prescription
-  Future<void> deletePrescription(String userId) async {
+  // Delete medical prescription
+  Future<void> deleteMedicalPrescription(String userId) async {
     try {
       // Delete the latest prescription
       await _firestore
@@ -211,7 +257,28 @@ class DatabaseService {
           .doc(userId)
           .update({'hasPrescription': false});
     } catch (e) {
-      throw Exception('Error deleting prescription: $e');
+      throw Exception('Error deleting medical prescription: $e');
+    }
+  }
+
+  // Delete environment conditions
+  Future<void> deleteEnvironmentConditions(String userId) async {
+    try {
+      // Delete the latest environment conditions
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .collection('environment_conditions')
+          .doc('latest')
+          .delete();
+
+      // Update user model to indicate they no longer have environment conditions
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .update({'hasEnvironmentConditions': false});
+    } catch (e) {
+      throw Exception('Error deleting environment conditions: $e');
     }
   }
 }

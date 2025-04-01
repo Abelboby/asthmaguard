@@ -72,7 +72,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
 
     try {
       final prescription =
-          await _databaseService.getLatestPrescription(widget.user.id);
+          await _databaseService.getLatestEnvironmentConditions(widget.user.id);
 
       setState(() {
         _prescription = prescription;
@@ -103,7 +103,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading prescription: ${e.toString()}';
+        _errorMessage = 'Error loading environment conditions: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -131,7 +131,8 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         prescribedDate: DateTime.now(),
       );
 
-      await _databaseService.savePrescription(widget.user.id, prescription);
+      await _databaseService.saveEnvironmentConditions(
+          widget.user.id, prescription);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -145,7 +146,8 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Error saving prescription: ${e.toString()}';
+          _errorMessage =
+              'Error saving environment conditions: ${e.toString()}';
           _isSaving = false;
         });
       }
@@ -184,7 +186,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     });
 
     try {
-      await _databaseService.deletePrescription(widget.user.id);
+      await _databaseService.deleteEnvironmentConditions(widget.user.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -210,7 +212,8 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Error deleting prescription: ${e.toString()}';
+          _errorMessage =
+              'Error deleting environment conditions: ${e.toString()}';
           _isDeleting = false;
         });
       }
