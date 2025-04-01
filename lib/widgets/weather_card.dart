@@ -121,7 +121,7 @@ class WeatherCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Based on doctor\'s prescription',
+                          'Based on your environment conditions',
                           style: TextStyle(
                             fontSize: 11,
                             fontStyle: FontStyle.italic,

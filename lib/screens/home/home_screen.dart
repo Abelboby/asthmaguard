@@ -615,7 +615,7 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                           icon: const Icon(Icons.medical_services_outlined,
                               size: 16),
-                          label: const Text('View Doctor\'s Prescription'),
+                          label: const Text('View Environment Conditions'),
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.linkTextColor,
                           ),

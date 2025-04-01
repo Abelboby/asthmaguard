@@ -134,8 +134,8 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
       await _databaseService.savePrescription(widget.user.id, prescription);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Prescription saved successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Environment conditions saved successfully!')));
         setState(() {
           _prescription = prescription;
           _isSaving = false;
@@ -157,9 +157,9 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Prescription?'),
+        title: const Text('Delete Environment Conditions?'),
         content: const Text(
-            'Are you sure you want to delete this prescription? This action cannot be undone.'),
+            'Are you sure you want to delete these environment conditions? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -187,8 +187,8 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
       await _databaseService.deletePrescription(widget.user.id);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Prescription deleted successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Environment conditions deleted successfully')));
 
         // Reset form
         _minTempController.text = '15.0';
@@ -223,7 +223,9 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         title: Text(
-          _isEditing ? 'Edit Prescription' : 'New Prescription',
+          _isEditing
+              ? 'Edit Environment Conditions'
+              : 'New Environment Conditions',
           style: TextStyle(
             color: AppColors.primaryColor,
             fontWeight: FontWeight.bold,
@@ -238,7 +240,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                 IconButton(
                   icon: Icon(Icons.delete_outline, color: AppColors.errorColor),
                   onPressed: _isDeleting ? null : _deletePrescription,
-                  tooltip: 'Delete Prescription',
+                  tooltip: 'Delete Environment Conditions',
                 ),
               ]
             : null,
@@ -336,7 +338,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Doctor Prescribed Parameters',
+                        'Safe Environment Parameters',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -348,7 +350,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Enter the safe ranges for environmental parameters as prescribed by your doctor. The app will alert you when conditions exceed these thresholds.',
+                  'Enter the safe ranges for environmental parameters that are suitable for your condition. The app will alert you when conditions exceed these thresholds.',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.secondaryTextColor,
@@ -382,7 +384,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Prescribed Parameters',
+                  'Environmental Parameters',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -540,12 +542,12 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
 
                 // Doctor Name
                 CustomTextField(
-                  label: 'Doctor Name',
-                  hintText: 'Dr. Smith',
+                  label: 'Set By (Optional)',
+                  hintText: 'Dr. Smith or self-set',
                   controller: _doctorNameController,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter doctor name';
+                      return 'Please enter name';
                     }
                     return null;
                   },

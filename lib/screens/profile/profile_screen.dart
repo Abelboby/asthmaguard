@@ -339,8 +339,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Doctor Prescription Settings
                 _buildSettingsTile(
-                  icon: Icons.medical_services_outlined,
-                  label: 'Doctor Prescription',
+                  icon: Icons.thermostat_outlined,
+                  label: 'Environment Conditions',
                   iconColor: Colors.purple,
                   onTap: () {
                     Navigator.push(
