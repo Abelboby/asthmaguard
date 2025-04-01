@@ -702,39 +702,6 @@ class _HomeScreenState extends State<HomeScreen>
                   // Always show Environment Conditions card
                   const SizedBox(height: 24),
                   if (_user != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Environment Conditions',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryTextColor,
-                          ),
-                        ),
-                        if (_user!.hasPrescription ||
-                            _user!.hasEnvironmentConditions)
-                          Text(
-                            'Status: Configured',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.successColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          )
-                        else
-                          Text(
-                            'Status: Not configured',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.secondaryTextColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
                     _buildAddPrescriptionCard(),
                   ],
 
@@ -786,7 +753,6 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -798,14 +764,16 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.only(top: 4),
                 decoration: BoxDecoration(
                   color: hasEnvironmentConditions
                       ? AppColors.successColor.withOpacity(0.1)
@@ -813,86 +781,131 @@ class _HomeScreenState extends State<HomeScreen>
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.medical_services_outlined,
+                  Icons.thermostat_outlined,
                   color: hasEnvironmentConditions
                       ? AppColors.successColor
                       : AppColors.primaryColor,
-                  size: 20,
+                  size: 18,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      hasEnvironmentConditions
-                          ? 'Your Environment Conditions'
-                          : 'Set Environment Conditions',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryTextColor,
-                      ),
-                    ),
-                    if (hasEnvironmentConditions && _prescription != null)
-                      Text(
-                        'Temperature: ${_prescription!.minTemperature}°C - ${_prescription!.maxTemperature}°C, Humidity: ${_prescription!.minHumidity}% - ${_prescription!.maxHumidity}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.secondaryTextColor,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Environment Conditions',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryTextColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        const SizedBox(width: 4),
+                        if (hasEnvironmentConditions)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.successColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Configured',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.successColor,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (hasEnvironmentConditions && _prescription != null) ...[
+                      const SizedBox(height: 4),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildConditionRow(
+                            Icons.thermostat_outlined,
+                            'Temperature: ${_prescription!.minTemperature}°C - ${_prescription!.maxTemperature}°C',
+                          ),
+                          _buildConditionRow(
+                            Icons.water_drop_outlined,
+                            'Humidity: ${_prescription!.minHumidity}% - ${_prescription!.maxHumidity}%',
+                          ),
+                          _buildConditionRow(
+                            Icons.speed_outlined,
+                            'Pressure: ${_prescription!.minPressure} - ${_prescription!.maxPressure} hPa',
+                          ),
+                          _buildConditionRow(
+                            Icons.air_outlined,
+                            'Wind Speed: Max ${_prescription!.maxWindSpeed} m/s',
+                          ),
+                          _buildConditionRow(
+                            Icons.person_outline,
+                            'Set by: ${_prescription!.doctorName}',
+                          ),
+                        ],
                       ),
+                    ],
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            hasEnvironmentConditions
-                ? 'These settings help determine if current weather conditions are safe for your asthma.'
-                : 'Set safe ranges for weather parameters based on your asthma condition. This helps the app provide personalized alerts.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.secondaryTextColor,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  text: hasEnvironmentConditions ? 'Update' : 'Quick Setup',
-                  onPressed: _showQuickSetupDialog,
-                  isOutlined: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
-                  text: hasEnvironmentConditions
-                      ? 'View Details'
-                      : 'Advanced Setup',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PrescriptionScreen(
-                          user: _user!,
-                          currentWeather: Provider.of<WeatherProvider>(context,
-                                  listen: false)
-                              .weatherData,
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      hasEnvironmentConditions
+                          ? Icons.edit_outlined
+                          : Icons.add_circle_outline,
+                      color: AppColors.primaryColor,
+                      size: 18,
+                    ),
+                    onPressed: _showQuickSetupDialog,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: hasEnvironmentConditions ? 'Update' : 'Configure',
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PrescriptionScreen(
+                            user: _user!,
+                            currentWeather: Provider.of<WeatherProvider>(
+                                    context,
+                                    listen: false)
+                                .weatherData,
+                          ),
                         ),
-                      ),
-                    ).then(
-                        (_) => _loadUserData()); // Reload data when returning
-                  },
-                ),
+                      ).then((_) => _loadUserData());
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'View Details',
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1333,6 +1346,32 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildConditionRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3.0),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: AppColors.primaryColor,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.secondaryTextColor,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
