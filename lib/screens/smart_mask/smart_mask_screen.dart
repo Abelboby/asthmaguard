@@ -8,6 +8,7 @@ import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/medical_prescription_model.dart';
 import '../../models/user_model.dart';
+import '../../widgets/breath_parameter_chart.dart';
 
 class SmartMaskScreen extends StatefulWidget {
   const SmartMaskScreen({Key? key}) : super(key: key);
@@ -379,6 +380,62 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                   if (smartMaskProvider.isConnected &&
                       smartMaskProvider.smartMaskData != null)
                     _buildSmartMaskDataCard(smartMaskProvider),
+
+                  // Historical Data Charts
+                  if (smartMaskProvider.isConnected) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Breath Data Trends',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryTextColor,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.refresh,
+                            color: AppColors.primaryColor,
+                            size: 22,
+                          ),
+                          onPressed: () {
+                            smartMaskProvider.fetchHistoricalData();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Refreshing historical data...'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                          tooltip: 'Refresh historical data',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Temperature Chart
+                    BreathParameterChart(
+                      data: smartMaskProvider.historicalData,
+                      title: 'Breath Temperature',
+                      color: AppColors.primaryColor,
+                      unit: '°C',
+                      isLoading: smartMaskProvider.isLoadingHistoricalData,
+                      valueSelector: (data) => data.temperature,
+                    ),
+
+                    // Humidity Chart
+                    BreathParameterChart(
+                      data: smartMaskProvider.historicalData,
+                      title: 'Breath Humidity',
+                      color: Colors.blue,
+                      unit: '%',
+                      isLoading: smartMaskProvider.isLoadingHistoricalData,
+                      valueSelector: (data) => data.humidity,
+                    ),
+                  ],
 
                   const SizedBox(height: 24),
 

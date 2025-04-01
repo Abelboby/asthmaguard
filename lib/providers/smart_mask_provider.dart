@@ -9,6 +9,9 @@ class SmartMaskProvider with ChangeNotifier {
   bool _isDeviceOnline = false;
   SmartMaskDataModel? _smartMaskData;
   SmartMaskDataModel? _previousData;
+  List<SmartMaskDataModel> _historicalData = [];
+  bool _isLoadingHistoricalData = false;
+  
   final ESP8266Service _esp8266Service = ESP8266Service();
   StreamSubscription<SmartMaskDataModel>? _dataSubscription;
   Timer? _deviceStatusTimer;
@@ -25,8 +28,32 @@ class SmartMaskProvider with ChangeNotifier {
   bool get isDeviceOnline => _isDeviceOnline;
   SmartMaskDataModel? get smartMaskData => _smartMaskData;
   SmartMaskDataModel? get previousData => _previousData;
+  List<SmartMaskDataModel> get historicalData => _historicalData;
+  bool get isLoadingHistoricalData => _isLoadingHistoricalData;
   bool get showTemperatureHighlight => _showTemperatureHighlight;
   bool get showHumidityHighlight => _showHumidityHighlight;
+
+  // Method to fetch historical data
+  Future<void> fetchHistoricalData({int limit = 20}) async {
+    if (!_isConnected) return;
+    
+    _isLoadingHistoricalData = true;
+    notifyListeners();
+    
+    try {
+      final data = await _esp8266Service.getHistoricalData(limit: limit);
+      
+      // Sort data by timestamp (oldest to newest for the graph)
+      data.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      
+      _historicalData = data;
+    } catch (e) {
+      print('Error fetching historical data: $e');
+    } finally {
+      _isLoadingHistoricalData = false;
+      notifyListeners();
+    }
+  }
 
   // Method to connect to smart mask
   Future<void> connectToSmartMask(BuildContext context) async {
@@ -50,6 +77,9 @@ class SmartMaskProvider with ChangeNotifier {
 
         // Start device status monitoring
         _startDeviceStatusMonitoring();
+        
+        // Fetch historical data for graphs
+        await fetchHistoricalData();
       } else {
         // If no data is found
         ScaffoldMessenger.of(context).showSnackBar(
@@ -93,6 +123,7 @@ class SmartMaskProvider with ChangeNotifier {
     _isDeviceOnline = false;
     _showTemperatureHighlight = false;
     _showHumidityHighlight = false;
+    _historicalData = [];
 
     notifyListeners();
   }
@@ -115,6 +146,24 @@ class SmartMaskProvider with ChangeNotifier {
 
       _smartMaskData = data;
       _isDeviceOnline = true; // Device is online when we receive new data
+      
+      // Update historical data when receiving new data
+      if (_historicalData.isNotEmpty) {
+        // Check if data already exists based on timestamp
+        bool dataExists = _historicalData.any((item) => 
+            item.timestamp.difference(data.timestamp).inSeconds.abs() < 1);
+        
+        if (!dataExists) {
+          // Add the new data to historical data and keep the list sorted
+          _historicalData.add(data);
+          _historicalData.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          
+          // Keep the list size limited
+          if (_historicalData.length > 20) {
+            _historicalData.removeAt(0); // Remove oldest
+          }
+        }
+      }
 
       notifyListeners();
     }, onError: (error) {
