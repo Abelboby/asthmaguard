@@ -19,6 +19,7 @@ import '../prescription/prescription_screen.dart';
 import '../main_layout.dart';
 import '../smart_mask/smart_mask_screen.dart';
 import '../search/place_search_screen.dart';
+import '../info_center/asthma_chatbot_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -301,6 +302,20 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
+      // Add floating action button for quick access to AI Chatbot
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AsthmaChatbotScreen(),
+            ),
+          );
+        },
+        backgroundColor: AppColors.primaryColor,
+        child: const Icon(Icons.chat_outlined),
+        tooltip: 'AI Asthma Assistant',
+      ),
       body: _isLoading || isProviderLoading
           ? const Center(
               child: CircularProgressIndicator(),

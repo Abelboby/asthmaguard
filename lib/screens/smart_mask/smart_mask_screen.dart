@@ -10,6 +10,7 @@ import '../../models/medical_prescription_model.dart';
 import '../../models/user_model.dart';
 import '../../widgets/breath_parameter_chart.dart';
 import '../info_center/asthma_info_center_screen.dart';
+import '../info_center/asthma_chatbot_screen.dart';
 
 class SmartMaskScreen extends StatefulWidget {
   const SmartMaskScreen({Key? key}) : super(key: key);
@@ -467,7 +468,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                   ),
                   const SizedBox(height: 16),
                   _buildDoctorPrescriptionCard(),
-                  
+
                   // Information Center Card
                   const SizedBox(height: 24),
                   Text(
@@ -1061,23 +1062,88 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
             Row(
               children: [
                 _buildInfoChip(
-                  icon: Icons.sick, 
-                  text: 'Symptoms', 
-                  color: Colors.red.shade400
-                ),
+                    icon: Icons.sick,
+                    text: 'Symptoms',
+                    color: Colors.red.shade400),
                 const SizedBox(width: 8),
                 _buildInfoChip(
-                  icon: Icons.warning_amber, 
-                  text: 'Triggers', 
-                  color: Colors.orange.shade400
-                ),
+                    icon: Icons.warning_amber,
+                    text: 'Triggers',
+                    color: Colors.orange.shade400),
                 const SizedBox(width: 8),
                 _buildInfoChip(
-                  icon: Icons.health_and_safety,
-                  text: 'Precautions',
-                  color: Colors.green.shade400
-                ),
+                    icon: Icons.health_and_safety,
+                    text: 'Precautions',
+                    color: Colors.green.shade400),
               ],
+            ),
+
+            // AI Chatbot Button
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primaryColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AsthmaChatbotScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          color: AppColors.primaryColor,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Ask AI Asthma Assistant',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryColor,
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'NEW',
+                            style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
