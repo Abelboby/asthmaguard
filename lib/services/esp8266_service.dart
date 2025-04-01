@@ -24,7 +24,7 @@ class ESP8266Service {
       if (snapshot.docs.isNotEmpty) {
         try {
           final doc = snapshot.docs.first;
-          final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data();
 
           // Parse data, handling both direct values and nested field structures
           final maskData = _parseESP8266Data(data);

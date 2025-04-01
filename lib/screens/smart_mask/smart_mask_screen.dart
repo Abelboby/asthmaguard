@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
-import '../../models/breath_data_model.dart';
 import '../../models/smart_mask_data_model.dart';
-import '../../services/esp8266_service.dart';
+import '../../providers/smart_mask_provider.dart';
 
 class SmartMaskScreen extends StatefulWidget {
   const SmartMaskScreen({Key? key}) : super(key: key);
@@ -15,23 +14,8 @@ class SmartMaskScreen extends StatefulWidget {
 
 class _SmartMaskScreenState extends State<SmartMaskScreen>
     with SingleTickerProviderStateMixin {
-  bool _isConnected = false;
-  bool _isConnecting = false;
-  SmartMaskDataModel? _smartMaskData;
-  SmartMaskDataModel? _previousData;
-  final ESP8266Service _esp8266Service = ESP8266Service();
-  StreamSubscription<SmartMaskDataModel>? _dataSubscription;
-
-  // For animations
+  // Animation controller for the highlight animations
   late AnimationController _animationController;
-  bool _showTemperatureHighlight = false;
-  bool _showHumidityHighlight = false;
-
-  // For device online status checking
-  bool _isDeviceOnline = true;
-  Timer? _deviceStatusTimer;
-  final int _offlineThresholdSeconds =
-      15; // Consider offline after 15 seconds without update
 
   @override
   void initState() {
@@ -45,10 +29,9 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
 
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        setState(() {
-          _showTemperatureHighlight = false;
-          _showHumidityHighlight = false;
-        });
+        // Reset highlights in the provider when animation completes
+        Provider.of<SmartMaskProvider>(context, listen: false)
+            .resetHighlights();
         _animationController.reset();
       }
     });
@@ -56,150 +39,8 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
 
   @override
   void dispose() {
-    _dataSubscription?.cancel();
-    _deviceStatusTimer?.cancel();
     _animationController.dispose();
-    _esp8266Service.dispose();
     super.dispose();
-  }
-
-  void _connectToSmartMask() {
-    if (_isConnecting) return;
-
-    setState(() {
-      _isConnecting = true;
-    });
-
-    // Try to get initial data
-    _esp8266Service.getLatestData().then((data) {
-      if (data != null) {
-        setState(() {
-          _smartMaskData = data;
-          _previousData = data; // Initialize previous data
-          _isConnected = true;
-          _isConnecting = false;
-          _isDeviceOnline = _isDataRecent(data.timestamp);
-        });
-
-        // Start real-time data stream
-        _startDataStream();
-
-        // Start device status monitoring
-        _startDeviceStatusMonitoring();
-      } else {
-        // If no data is found
-        setState(() {
-          _isConnecting = false;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'No smart mask data found. Please ensure your ESP8266 is sending data.'),
-              duration: Duration(seconds: 4),
-            ),
-          );
-        });
-      }
-    }).catchError((error) {
-      setState(() {
-        _isConnecting = false;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error connecting to smart mask: $error'),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
-      });
-    });
-  }
-
-  void _startDataStream() {
-    // Start the service listening
-    _esp8266Service.startListening();
-
-    // Subscribe to the stream
-    _dataSubscription = _esp8266Service.dataStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          // Check if values have changed to trigger animations
-          if (_smartMaskData != null) {
-            _showTemperatureHighlight =
-                _smartMaskData!.temperature != data.temperature;
-            _showHumidityHighlight = _smartMaskData!.humidity != data.humidity;
-
-            // Store previous data
-            _previousData = _smartMaskData;
-          }
-
-          _smartMaskData = data;
-          _isDeviceOnline = true; // Device is online when we receive new data
-        });
-
-        // Start animation if values changed
-        if (_showTemperatureHighlight || _showHumidityHighlight) {
-          _animationController.forward();
-        }
-      }
-    }, onError: (error) {
-      print('Error in ESP8266 data stream: $error');
-    });
-  }
-
-  // Check if device is online based on the last data timestamp
-  bool _isDataRecent(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-    return difference.inSeconds < _offlineThresholdSeconds;
-  }
-
-  // Start periodic checking of device online status
-  void _startDeviceStatusMonitoring() {
-    // Cancel any existing timer
-    _deviceStatusTimer?.cancel();
-
-    // Check device status every 5 seconds
-    _deviceStatusTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (!mounted || _smartMaskData == null) return;
-
-      final isOnline = _isDataRecent(_smartMaskData!.timestamp);
-      if (isOnline != _isDeviceOnline) {
-        setState(() {
-          _isDeviceOnline = isOnline;
-        });
-
-        // Show notification when device goes offline
-        if (!isOnline) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                  'Smart Mask appears to be offline. No data received in the last 15 seconds.'),
-              backgroundColor: AppColors.warningColor,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
-      }
-    });
-  }
-
-  void _disconnectSmartMask() {
-    if (_isConnecting) return;
-
-    // Stop the real-time data stream
-    _dataSubscription?.cancel();
-    _dataSubscription = null;
-
-    // Stop the device status monitoring
-    _deviceStatusTimer?.cancel();
-    _deviceStatusTimer = null;
-
-    _esp8266Service.stopListening();
-
-    setState(() {
-      _isConnected = false;
-      _smartMaskData = null;
-      _previousData = null;
-      _isDeviceOnline = false;
-    });
   }
 
   @override
@@ -237,192 +78,209 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Status Card
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
+        child: Consumer<SmartMaskProvider>(
+          builder: (context, smartMaskProvider, child) {
+            // Check if highlight animation should be triggered
+            if ((smartMaskProvider.showTemperatureHighlight ||
+                    smartMaskProvider.showHumidityHighlight) &&
+                !_animationController.isAnimating) {
+              _animationController.forward();
+            }
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Status Card
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Smart Mask Image/Icon
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: _isConnected
-                            ? AppColors.primaryColor.withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: _isConnected
-                                ? AppColors.primaryColor.withOpacity(0.2)
-                                : Colors.grey.withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
+                    child: Column(
+                      children: [
+                        // Smart Mask Image/Icon
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: smartMaskProvider.isConnected
+                                ? AppColors.primaryColor.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: smartMaskProvider.isConnected
+                                    ? AppColors.primaryColor.withOpacity(0.2)
+                                    : Colors.grey.withOpacity(0.2),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.masks,
-                          size: 60,
-                          color: _isConnected
-                              ? AppColors.primaryColor
-                              : Colors.grey,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Connection Status
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _isConnected
-                            ? AppColors.successColor.withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _isConnected
-                              ? AppColors.successColor.withOpacity(0.3)
-                              : Colors.grey.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        _isConnected ? 'Connected to ESP8266' : 'Not Connected',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: _isConnected
-                              ? AppColors.successColor
-                              : Colors.grey,
-                        ),
-                      ),
-                    ),
-
-                    // Device Online Status indicator (if connected)
-                    if (_isConnected) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: _isDeviceOnline
-                                  ? AppColors.successColor
-                                  : AppColors.errorColor,
-                              shape: BoxShape.circle,
+                          child: Center(
+                            child: Icon(
+                              Icons.masks,
+                              size: 60,
+                              color: smartMaskProvider.isConnected
+                                  ? AppColors.primaryColor
+                                  : Colors.grey,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Connection Status
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: smartMaskProvider.isConnected
+                                ? AppColors.successColor.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: smartMaskProvider.isConnected
+                                  ? AppColors.successColor.withOpacity(0.3)
+                                  : Colors.grey.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            smartMaskProvider.isConnected
+                                ? 'Connected to ESP8266'
+                                : 'Not Connected',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: smartMaskProvider.isConnected
+                                  ? AppColors.successColor
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+
+                        // Device Online Status indicator (if connected)
+                        if (smartMaskProvider.isConnected) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: smartMaskProvider.isDeviceOnline
+                                      ? AppColors.successColor
+                                      : AppColors.errorColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                smartMaskProvider.isDeviceOnline
+                                    ? 'Device Online'
+                                    : 'Device Offline',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: smartMaskProvider.isDeviceOnline
+                                      ? AppColors.successColor
+                                      : AppColors.errorColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        const SizedBox(height: 8),
+
+                        // Last updated
+                        if (smartMaskProvider.isConnected &&
+                            smartMaskProvider.smartMaskData != null)
                           Text(
-                            _isDeviceOnline
-                                ? 'Device Online'
-                                : 'Device Offline',
+                            'Last updated: ${_formatTimeIn12Hour(smartMaskProvider.smartMaskData!.timestamp)}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: _isDeviceOnline
-                                  ? AppColors.successColor
-                                  : AppColors.errorColor,
-                              fontWeight: FontWeight.w500,
+                              color: AppColors.secondaryTextColor,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
 
-                    const SizedBox(height: 8),
+                        const SizedBox(height: 20),
 
-                    // Last updated
-                    if (_isConnected && _smartMaskData != null)
-                      Text(
-                        'Last updated: ${_formatTimeIn12Hour(_smartMaskData!.timestamp)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.secondaryTextColor,
-                        ),
-                      ),
+                        // Connect Button
+                        smartMaskProvider.isConnected
+                            ? CustomButton(
+                                text: 'Disconnect Smart Mask',
+                                onPressed: () =>
+                                    smartMaskProvider.disconnectSmartMask(),
+                                isLoading: smartMaskProvider.isConnecting,
+                                isOutlined: true,
+                                color: AppColors.errorColor,
+                              )
+                            : CustomButton(
+                                text: 'Connect Smart Mask',
+                                onPressed: () => smartMaskProvider
+                                    .connectToSmartMask(context),
+                                isLoading: smartMaskProvider.isConnecting,
+                              ),
 
-                    const SizedBox(height: 20),
-
-                    // Connect Button
-                    _isConnected
-                        ? CustomButton(
-                            text: 'Disconnect Smart Mask',
-                            onPressed: _disconnectSmartMask,
-                            isLoading: _isConnecting,
-                            isOutlined: true,
-                            color: AppColors.errorColor,
-                          )
-                        : CustomButton(
-                            text: 'Connect Smart Mask',
-                            onPressed: _connectToSmartMask,
-                            isLoading: _isConnecting,
+                        if (!smartMaskProvider.isConnected)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Text(
+                              'Connect your AsthmaGuard smart mask to monitor your breath data in real-time from the ESP8266 device.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.secondaryTextColor,
+                              ),
+                            ),
                           ),
+                      ],
+                    ),
+                  ),
 
-                    if (!_isConnected)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Text(
-                          'Connect your AsthmaGuard smart mask to monitor your breath data in real-time from the ESP8266 device.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.secondaryTextColor,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                  // Breath Data
+                  if (smartMaskProvider.isConnected &&
+                      smartMaskProvider.smartMaskData != null)
+                    _buildSmartMaskDataCard(smartMaskProvider),
+
+                  const SizedBox(height: 24),
+
+                  // Recommendations - Now always visible regardless of connection status
+                  Text(
+                    'Recommendations',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRecommendations(smartMaskProvider),
+                ],
               ),
-
-              // Breath Data
-              if (_isConnected && _smartMaskData != null)
-                _buildSmartMaskDataCard(),
-
-              const SizedBox(height: 24),
-
-              // Recommendations - Now always visible regardless of connection status
-              Text(
-                'Recommendations',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryTextColor,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildRecommendations(),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildSmartMaskDataCard() {
+  Widget _buildSmartMaskDataCard(SmartMaskProvider provider) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -456,17 +314,17 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: _getStatusColor(
-                          _smartMaskData!.getFormattedTriggerLevel())
+                          provider.smartMaskData!.getFormattedTriggerLevel())
                       .withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  _smartMaskData!.getFormattedTriggerLevel(),
+                  provider.smartMaskData!.getFormattedTriggerLevel(),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: _getStatusColor(
-                        _smartMaskData!.getFormattedTriggerLevel()),
+                        provider.smartMaskData!.getFormattedTriggerLevel()),
                   ),
                 ),
               ),
@@ -486,29 +344,30 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
             children: [
               _buildBreathDataTile(
                 'Breath Temperature',
-                '${_smartMaskData!.temperature.toStringAsFixed(1)}°C',
+                '${provider.smartMaskData!.temperature.toStringAsFixed(1)}°C',
                 Icons.thermostat_outlined,
                 AppColors.primaryColor, // Teal blue
-                showHighlight: _showTemperatureHighlight,
-                previousValue: _previousData != null
-                    ? '${_previousData!.temperature.toStringAsFixed(1)}°C'
+                showHighlight: provider.showTemperatureHighlight,
+                previousValue: provider.previousData != null
+                    ? '${provider.previousData!.temperature.toStringAsFixed(1)}°C'
                     : null,
               ),
               _buildBreathDataTile(
                 'Breath Humidity',
-                '${_smartMaskData!.humidity.toStringAsFixed(1)}%',
+                '${provider.smartMaskData!.humidity.toStringAsFixed(1)}%',
                 Icons.water_drop_outlined,
                 AppColors.primaryColor, // Teal blue
-                showHighlight: _showHumidityHighlight,
-                previousValue: _previousData != null
-                    ? '${_previousData!.humidity.toStringAsFixed(1)}%'
+                showHighlight: provider.showHumidityHighlight,
+                previousValue: provider.previousData != null
+                    ? '${provider.previousData!.humidity.toStringAsFixed(1)}%'
                     : null,
               ),
               _buildBreathDataTile(
                 'Status',
-                _smartMaskData!.getFormattedTriggerLevel(),
+                provider.smartMaskData!.getFormattedTriggerLevel(),
                 Icons.shield_outlined,
-                _getStatusColor(_smartMaskData!.getFormattedTriggerLevel()),
+                _getStatusColor(
+                    provider.smartMaskData!.getFormattedTriggerLevel()),
               ),
             ],
           ),
@@ -648,7 +507,7 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
   }
 
   // Building recommendations based on breath data risk status
-  Widget _buildRecommendations() {
+  Widget _buildRecommendations(SmartMaskProvider provider) {
     // Default recommendations when not connected or no breath data
     List<Map<String, dynamic>> recommendations = [
       {
@@ -672,9 +531,9 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
     ];
 
     // If connected and has breath data, show personalized recommendations
-    if (_smartMaskData != null) {
+    if (provider.smartMaskData != null) {
       final riskStatus =
-          _smartMaskData!.getFormattedTriggerLevel().toLowerCase();
+          provider.smartMaskData!.getFormattedTriggerLevel().toLowerCase();
 
       if (riskStatus.contains('high')) {
         recommendations = [
