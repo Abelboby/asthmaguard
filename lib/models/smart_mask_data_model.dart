@@ -1,13 +1,17 @@
 class SmartMaskDataModel {
   final double temperature;
   final double humidity;
-  final String triggerLevel;
   final DateTime timestamp;
+
+  // Default thresholds - these can be overridden by user preferences
+  static double highTempThreshold = 34.5;  // > 34.5°C is high trigger
+  static double lowTempThreshold = 34.0;   // < 34.0°C is low trigger
+  static double highHumidityThreshold = 90.0;  // > 90% is high trigger
+  static double lowHumidityThreshold = 80.0;   // < 80% is low trigger
 
   SmartMaskDataModel({
     required this.temperature,
     required this.humidity,
-    required this.triggerLevel,
     required this.timestamp,
   });
 
@@ -15,19 +19,40 @@ class SmartMaskDataModel {
   factory SmartMaskDataModel.fromRawValues({
     required double temperature,
     required double humidity,
-    required String triggerLevel,
     DateTime? timestamp,
   }) {
     return SmartMaskDataModel(
       temperature: temperature,
       humidity: humidity,
-      triggerLevel: triggerLevel,
       timestamp: timestamp ?? DateTime.now(),
     );
   }
 
+  // Calculate trigger level based on temperature and humidity
+  String calculateTriggerLevel() {
+    // Check for high trigger conditions
+    if (temperature > highTempThreshold || humidity > highHumidityThreshold) {
+      return 'High Triggering Chance';
+    }
+    
+    // Check for medium trigger conditions
+    if ((temperature >= lowTempThreshold && temperature <= highTempThreshold) ||
+        (humidity >= lowHumidityThreshold && humidity <= highHumidityThreshold)) {
+      return 'Medium Triggering Chance';
+    }
+    
+    // Low trigger conditions
+    if (temperature < lowTempThreshold && humidity < lowHumidityThreshold) {
+      return 'Low Triggering Chance';
+    }
+    
+    // Default to medium if only one parameter is in low range
+    return 'Low Triggering Chance';
+  }
+
   // Calculate breath score based on the trigger level
   int calculateBreathScore() {
+    String triggerLevel = calculateTriggerLevel();
     switch (triggerLevel) {
       case 'Low Triggering Chance':
         return 85;
@@ -42,6 +67,7 @@ class SmartMaskDataModel {
 
   // Get color status based on trigger level
   String getColorStatus() {
+    String triggerLevel = calculateTriggerLevel();
     switch (triggerLevel) {
       case 'Low Triggering Chance':
         return 'green';
@@ -56,6 +82,7 @@ class SmartMaskDataModel {
 
   // Get a formatted version of the trigger level for display
   String getFormattedTriggerLevel() {
+    String triggerLevel = calculateTriggerLevel();
     switch (triggerLevel) {
       case 'Low Triggering Chance':
         return 'Low Risk';
@@ -68,12 +95,24 @@ class SmartMaskDataModel {
     }
   }
 
+  // Update thresholds (can be called from settings)
+  static void updateThresholds({
+    double? highTemp,
+    double? lowTemp,
+    double? highHumidity,
+    double? lowHumidity,
+  }) {
+    if (highTemp != null) highTempThreshold = highTemp;
+    if (lowTemp != null) lowTempThreshold = lowTemp;
+    if (highHumidity != null) highHumidityThreshold = highHumidity;
+    if (lowHumidity != null) lowHumidityThreshold = lowHumidity;
+  }
+
   // Create a dummy model for display when no data is available
   factory SmartMaskDataModel.dummy() {
     return SmartMaskDataModel(
       temperature: 0.0,
       humidity: 0.0,
-      triggerLevel: 'Unknown',
       timestamp: DateTime.now(),
     );
   }

@@ -5,6 +5,7 @@ import '../../models/user_model.dart';
 import '../../widgets/custom_button.dart';
 import '../auth/login_screen.dart';
 import '../prescription/prescription_screen.dart';
+import 'trigger_threshold_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -393,6 +394,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Notifications feature coming soon!'),
+                      ),
+                    );
+                  },
+                ),
+
+                // Trigger Threshold Settings
+                _buildSettingsTile(
+                  icon: Icons.tune,
+                  label: 'Asthma Trigger Thresholds',
+                  iconColor: Colors.orange,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TriggerThresholdSettingsScreen(),
                       ),
                     );
                   },

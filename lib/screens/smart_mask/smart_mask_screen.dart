@@ -571,13 +571,6 @@ class _SmartMaskScreenState extends State<SmartMaskScreen>
                     ? '${provider.previousData!.humidity.toStringAsFixed(1)}%'
                     : null,
               ),
-              _buildBreathDataTile(
-                'Status',
-                provider.smartMaskData!.getFormattedTriggerLevel(),
-                Icons.shield_outlined,
-                _getStatusColor(
-                    provider.smartMaskData!.getFormattedTriggerLevel()),
-              ),
             ],
           ),
         ],

@@ -83,7 +83,6 @@ class ESP8266Service {
     // Check the format and extract data accordingly
     double temperature;
     double humidity;
-    String triggerLevel;
     DateTime timestamp;
 
     // Handle temperature - could be direct value or nested
@@ -104,15 +103,6 @@ class ESP8266Service {
       humidity = 0.0;
     }
 
-    // Handle triggerLevel - could be direct string or nested
-    if (data['triggerLevel'] is String) {
-      triggerLevel = data['triggerLevel'];
-    } else if (data['triggerLevel'] is Map) {
-      triggerLevel = data['triggerLevel']['stringValue'] ?? 'Unknown';
-    } else {
-      triggerLevel = 'Unknown';
-    }
-
     // Handle timestamp - could be direct Timestamp, String or nested
     if (data['timestamp'] is Timestamp) {
       timestamp = (data['timestamp'] as Timestamp).toDate();
@@ -128,7 +118,6 @@ class ESP8266Service {
     return SmartMaskDataModel(
       temperature: temperature,
       humidity: humidity,
-      triggerLevel: triggerLevel,
       timestamp: timestamp,
     );
   }

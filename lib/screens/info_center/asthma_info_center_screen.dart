@@ -125,6 +125,11 @@ class _AsthmaInfoCenterScreenState extends State<AsthmaInfoCenterScreen> {
               
               const SizedBox(height: 24),
               
+              // Trigger Levels Table
+              _buildTriggerLevelsCard(),
+              
+              const SizedBox(height: 24),
+              
               // Category list
               ListView.separated(
                 physics: const NeverScrollableScrollPhysics(),
@@ -179,6 +184,144 @@ class _AsthmaInfoCenterScreenState extends State<AsthmaInfoCenterScreen> {
               const SizedBox(height: 24),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTriggerLevelsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange.shade400, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Asthma Trigger Levels',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'The smart mask uses breath parameters to determine trigger levels. These thresholds help you understand when you might be at risk of an asthma episode.',
+            style: TextStyle(
+              fontSize: 15,
+              color: AppColors.secondaryTextColor,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Table for trigger levels
+          Table(
+            border: TableBorder.all(
+              color: Colors.grey.shade200,
+              width: 1,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            columnWidths: const {
+              0: FlexColumnWidth(1.2),
+              1: FlexColumnWidth(1.8),
+              2: FlexColumnWidth(1.8),
+            },
+            children: [
+              // Header Row
+              TableRow(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                children: [
+                  _buildTableCell('Trigger Level', true, Colors.black87),
+                  _buildTableCell('Exhaled Breath Temperature (EBT)', true, Colors.black87),
+                  _buildTableCell('Exhaled Breath Humidity (EBH)', true, Colors.black87),
+                ],
+              ),
+              
+              // High Trigger Row
+              TableRow(
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                ),
+                children: [
+                  _buildTableCell('High Trigger', true, Colors.red.shade700),
+                  _buildTableCell('> 34.5°C', false, Colors.red.shade700),
+                  _buildTableCell('> 90%', false, Colors.red.shade700),
+                ],
+              ),
+              
+              // Medium Trigger Row
+              TableRow(
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                ),
+                children: [
+                  _buildTableCell('Medium Trigger', true, Colors.orange.shade800),
+                  _buildTableCell('34.0°C ≤ EBT ≤ 34.5°C', false, Colors.orange.shade800),
+                  _buildTableCell('80% ≤ EBH ≤ 90%', false, Colors.orange.shade800),
+                ],
+              ),
+              
+              // Low Trigger Row
+              TableRow(
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                ),
+                children: [
+                  _buildTableCell('Low Trigger', true, Colors.green.shade700),
+                  _buildTableCell('< 34.0°C', false, Colors.green.shade700),
+                  _buildTableCell('< 80%', false, Colors.green.shade700),
+                ],
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          Text(
+            'Note: These thresholds can be adjusted in your profile settings to personalize for your specific condition.',
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: AppColors.secondaryTextColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTableCell(String text, bool isBold, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          color: textColor,
         ),
       ),
     );

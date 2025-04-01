@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/smart_mask_data_model.dart';
 import '../services/esp8266_service.dart';
+import '../services/settings_service.dart';
 
 class SmartMaskProvider with ChangeNotifier {
   bool _isConnected = false;
@@ -13,6 +15,7 @@ class SmartMaskProvider with ChangeNotifier {
   bool _isLoadingHistoricalData = false;
   
   final ESP8266Service _esp8266Service = ESP8266Service();
+  final SettingsService _settingsService = SettingsService();
   StreamSubscription<SmartMaskDataModel>? _dataSubscription;
   Timer? _deviceStatusTimer;
   final int _offlineThresholdSeconds =
@@ -21,6 +24,33 @@ class SmartMaskProvider with ChangeNotifier {
   // For animation flags - these are used by the UI but managed by the provider
   bool _showTemperatureHighlight = false;
   bool _showHumidityHighlight = false;
+
+  // Constructor to load settings
+  SmartMaskProvider() {
+    _loadTriggerThresholds();
+  }
+
+  // Load trigger thresholds from settings service
+  Future<void> _loadTriggerThresholds() async {
+    try {
+      // Load threshold values if they exist
+      final highTemp = await _settingsService.getDouble('high_temp_threshold');
+      final lowTemp = await _settingsService.getDouble('low_temp_threshold');
+      final highHumidity = await _settingsService.getDouble('high_humidity_threshold');
+      final lowHumidity = await _settingsService.getDouble('low_humidity_threshold');
+      
+      // Update the model's static thresholds if values exist
+      SmartMaskDataModel.updateThresholds(
+        highTemp: highTemp,
+        lowTemp: lowTemp,
+        highHumidity: highHumidity,
+        lowHumidity: lowHumidity,
+      );
+    } catch (e) {
+      print('Error loading trigger thresholds: $e');
+      // Continue with default values in SmartMaskDataModel
+    }
+  }
 
   // Getters
   bool get isConnected => _isConnected;
