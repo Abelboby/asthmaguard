@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import '../models/weather_model.dart';
+import '../models/place_search_model.dart';
 import '../constants/app_constants.dart';
 
 class WeatherService {
@@ -36,6 +37,44 @@ class WeatherService {
       }
     } catch (e) {
       throw Exception('Error fetching weather data: $e');
+    }
+  }
+
+  // New method: Fetch weather data by coordinates
+  Future<Map<String, dynamic>> fetchWeatherByCoordinates(
+      double latitude, double longitude) async {
+    try {
+      final response = await http.get(Uri.parse(
+          '${AppConstants.weatherApiBaseUrl}/weather?lat=$latitude&lon=$longitude&appid=${AppConstants.weatherApiKey}'));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load weather data: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching weather data: $e');
+    }
+  }
+
+  // New method: Search for places by query
+  Future<List<PlaceSearchModel>> searchPlaces(String query) async {
+    if (query.trim().isEmpty) {
+      return [];
+    }
+
+    try {
+      final response = await http.get(Uri.parse(
+          'https://api.openweathermap.org/geo/1.0/direct?q=$query&limit=5&appid=${AppConstants.weatherApiKey}'));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((place) => PlaceSearchModel.fromJson(place)).toList();
+      } else {
+        throw Exception('Failed to search places: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error searching places: $e');
     }
   }
 
@@ -127,6 +166,28 @@ class WeatherService {
       );
     } catch (e) {
       throw Exception('Error processing weather data: $e');
+    }
+  }
+
+  // New method: Process weather data with a specified location name
+  Future<WeatherModel> processWeatherDataWithLocation(
+      Map<String, dynamic> rawData, String locationName) async {
+    try {
+      final weatherModel = await processWeatherData(rawData);
+
+      return WeatherModel(
+        temperature: weatherModel.temperature,
+        humidity: weatherModel.humidity,
+        pressure: weatherModel.pressure,
+        windSpeed: weatherModel.windSpeed,
+        uvIndex: weatherModel.uvIndex,
+        actScore: weatherModel.actScore,
+        riskStatus: weatherModel.riskStatus,
+        timestamp: weatherModel.timestamp,
+        locationName: locationName,
+      );
+    } catch (e) {
+      throw Exception('Error processing weather data with location: $e');
     }
   }
 

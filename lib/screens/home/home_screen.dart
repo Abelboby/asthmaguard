@@ -18,6 +18,7 @@ import '../profile/profile_screen.dart';
 import '../prescription/prescription_screen.dart';
 import '../main_layout.dart';
 import '../smart_mask/smart_mask_screen.dart';
+import '../search/place_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -469,13 +470,37 @@ class _HomeScreenState extends State<HomeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Greeting
-                          Text(
-                            'Hello, ${_user!.name}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryTextColor,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Hello, ${_user!.name}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryTextColor,
+                                ),
+                              ),
+                              // Add search icon for place search
+                              IconButton(
+                                icon: Icon(
+                                  Icons.search,
+                                  color: AppColors.primaryColor,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const PlaceSearchScreen(),
+                                    ),
+                                  );
+                                },
+                                tooltip: 'Search for places',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
 
