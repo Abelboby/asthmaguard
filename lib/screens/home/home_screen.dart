@@ -536,8 +536,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             );
                           },
-                          icon: const Icon(Icons.medical_services_outlined,
-                              size: 16),
+                          icon: const Icon(Icons.thermostat_outlined, size: 16),
                           label: const Text('View Environment Conditions'),
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.linkTextColor,
