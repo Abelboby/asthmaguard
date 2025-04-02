@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AIService {
-  // API Key would typically come from environment variables or secured storage
-  // For this demo, we're using a placeholder - you'll need to replace this with a real API key
-  final String _apiKey = 'AIzaSyCsv9OG-Z-IO-CBRx4NVXECKisVOXb6Uuo';
+  // API Key from environment variables
+  final String _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
   // System prompt that restricts the AI to only provide asthma-related information
   final String _systemPrompt = '''
