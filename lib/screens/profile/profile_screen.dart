@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/custom_button.dart';
+import '../../providers/smart_mask_provider.dart';
+import '../../providers/weather_provider.dart';
 import '../auth/login_screen.dart';
 import '../prescription/prescription_screen.dart';
 import 'trigger_threshold_settings_screen.dart';
@@ -167,6 +170,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
+    // Access providers for real-time data
+    final smartMaskProvider = Provider.of<SmartMaskProvider>(context);
+    final weatherProvider = Provider.of<WeatherProvider>(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -250,7 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // User Info Card
+          // User Info Card - Updated with real-time data
           Container(
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 16),
@@ -287,24 +294,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   iconColor: Colors.indigo,
                 ),
 
-                // Smart Mask Status
+                // Smart Mask Status - Now using real-time data from provider
                 _buildInfoTile(
                   icon: Icons.masks_outlined,
                   label: 'Smart Mask',
-                  value: _user!.hasSmartMask ? 'Connected' : 'Not Connected',
-                  valueColor: _user!.hasSmartMask
-                      ? AppColors.successColor
+                  value: smartMaskProvider.isConnected
+                      ? smartMaskProvider.isDeviceOnline
+                          ? 'Connected - Online'
+                          : 'Connected - Offline'
+                      : 'Not Connected',
+                  valueColor: smartMaskProvider.isConnected
+                      ? smartMaskProvider.isDeviceOnline
+                          ? AppColors.successColor
+                          : Colors.orange
                       : AppColors.secondaryTextColor,
                   iconColor: AppColors.primaryColor,
                 ),
 
-                // Location
+                // Last Breath Data - Show only if connected
+                if (smartMaskProvider.isConnected &&
+                    smartMaskProvider.smartMaskData != null)
+                  _buildInfoTile(
+                    icon: Icons.monitor_heart_outlined,
+                    label: 'Last Breath Data',
+                    value: 'Temp: ${smartMaskProvider.smartMaskData!.temperature.toStringAsFixed(1)}°C, ' +
+                        'Humidity: ${smartMaskProvider.smartMaskData!.humidity.toStringAsFixed(1)}%',
+                    iconColor: Colors.teal,
+                  ),
+
+                // Location - Using data from the weather provider
                 _buildInfoTile(
                   icon: Icons.location_on_outlined,
                   label: 'Location',
-                  value: _user!.location ?? 'Not Set',
+                  value: weatherProvider.hasData &&
+                          weatherProvider.weatherData!.locationName.isNotEmpty
+                      ? weatherProvider.weatherData!.locationName
+                      : _user!.location ?? 'Not Set',
                   iconColor: Colors.orange,
                 ),
+
+                // Last Weather Update - Show only if weather data exists
+                if (weatherProvider.hasData)
+                  _buildInfoTile(
+                    icon: Icons.update,
+                    label: 'Last Weather Update',
+                    value: _formatTimeIn12Hour(
+                        weatherProvider.weatherData!.timestamp),
+                    iconColor: Colors.blue,
+                  ),
               ],
             ),
           ),
@@ -349,8 +386,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       MaterialPageRoute(
                         builder: (context) => PrescriptionScreen(
                           user: _user!,
-                          currentWeather:
-                              null, // We'll get this from provider in the prescription screen
+                          currentWeather: weatherProvider
+                              .weatherData, // Pass weather data from provider
                         ),
                       ),
                     );
@@ -385,7 +422,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 //   },
                 // ),
 
-                // Notifications Button
+                // // Notifications Button
                 // _buildSettingsTile(
                 //   icon: Icons.notifications_outlined,
                 //   label: 'Notifications',
@@ -408,7 +445,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const TriggerThresholdSettingsScreen(),
+                        builder: (context) =>
+                            const TriggerThresholdSettingsScreen(),
                       ),
                     );
                   },
@@ -432,6 +470,118 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
+          // Smart Mask Status Card - New
+          smartMaskProvider.isConnected
+              ? Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Smart Mask Details',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Smart Mask Status
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: smartMaskProvider.isDeviceOnline
+                              ? AppColors.successColor.withOpacity(0.1)
+                              : Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: smartMaskProvider.isDeviceOnline
+                                ? AppColors.successColor.withOpacity(0.3)
+                                : Colors.orange.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.masks,
+                                color: smartMaskProvider.isDeviceOnline
+                                    ? AppColors.successColor
+                                    : Colors.orange,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    smartMaskProvider.isDeviceOnline
+                                        ? 'Smart Mask Connected & Active'
+                                        : 'Smart Mask Connected but Inactive',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: smartMaskProvider.isDeviceOnline
+                                          ? AppColors.successColor
+                                          : Colors.orange,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    smartMaskProvider.isDeviceOnline
+                                        ? 'Your mask is currently online and transmitting data.'
+                                        : 'Your mask is not currently transmitting data.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.secondaryTextColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Last updated info - only shown if we have data
+                      if (smartMaskProvider.smartMaskData != null)
+                        Text(
+                          'Last updated: ${_formatTimeIn12Hour(smartMaskProvider.smartMaskData!.timestamp)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.secondaryTextColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                )
+              : const SizedBox(),
+
           // Sign Out Button
           Container(
             width: double.infinity,
@@ -446,6 +596,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  // Helper method to format time in 12-hour format
+  String _formatTimeIn12Hour(DateTime time) {
+    final hour = time.hour > 12
+        ? time.hour - 12
+        : time.hour == 0
+            ? 12
+            : time.hour;
+    final period = time.hour >= 12 ? 'PM' : 'AM';
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
   }
 
   Widget _buildInfoTile({
